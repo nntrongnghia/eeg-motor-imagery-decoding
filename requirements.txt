@@ -1,0 +1,4 @@
+mne
+scikit-learn
+numpy
+pytorch
