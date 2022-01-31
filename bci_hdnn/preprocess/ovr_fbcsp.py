@@ -1,7 +1,7 @@
 import numpy as np
 
-from .filter_bank import FilterBank
-from .csp import CSP
+from bci_hdnn.preprocess.filter_bank import FilterBank
+from bci_hdnn.preprocess.csp import CSP
 
 
 class OVR_FBCSP:
@@ -62,7 +62,7 @@ class OVR_FBCSP:
         assert len(classes) == self.nb_classes, \
             f"y_labels should contain {self.nb_classes} classes"
         # TODO: optimize code to remove for loops ?
-        for b in len(self.filter.filter_coeff):
+        for b in range(len(self.filter.filter_coeff)):
             x = x_fb[b]  # (N, C, T)
             for cls in classes:
                 y_ovr = (y_labels == cls).astype(np.int)
@@ -87,6 +87,7 @@ class OVR_FBCSP:
             Feature matrix, shape (N, B, M)
             with M = 2*m*nb_classes
         """
+        assert self.WT is not None, "You should call self.fit first"
         Z = self.WT @ x_data[:, None] # (N, B, M, T)
         ZT = np.moveaxis(Z, -2, -1)
         ZZt = Z @ ZT # (N, B, M, M)

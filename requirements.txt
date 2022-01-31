@@ -2,3 +2,4 @@ mne
 scikit-learn
 numpy
 matplotlib
+pytorch-lightning
