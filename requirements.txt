@@ -1,4 +1,4 @@
 mne
 scikit-learn
 numpy
-pytorch
+matplotlib
