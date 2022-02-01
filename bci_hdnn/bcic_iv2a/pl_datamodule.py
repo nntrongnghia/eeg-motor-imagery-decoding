@@ -24,6 +24,7 @@ class IV2aDataModule(pl.LightningDataModule):
         self.preprocessors = None
         self.shuffle = True
         self.num_workers = 2
+        self.dims = None
 
     def setup(self, stage: Optional[str] = None):
         """Setup DataModule
@@ -45,6 +46,7 @@ class IV2aDataModule(pl.LightningDataModule):
                 self.exclude_subjects, self.tmin, self.tmax, self.train_transforms)
             dataset.setup()
             self.preprocessors = deepcopy(dataset.preprocessors)
+            self.dims = deepcopy(dataset.dims)
             train_len = int(len(dataset)*self.train_ratio)
             val_len = len(dataset) - train_len
             self.trainset, self.valset = random_split(

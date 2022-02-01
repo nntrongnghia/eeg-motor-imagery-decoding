@@ -3,3 +3,5 @@ scikit-learn
 numpy
 matplotlib
 pytorch-lightning
+ml-collections==0.1.1
+torchmetrics

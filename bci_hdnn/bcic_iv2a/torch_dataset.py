@@ -33,6 +33,7 @@ class IV2aDataset(Dataset):
         self.exclude_subjects = exclude_subject
         self.dataset = BCIC_IV2a(data_dir)
         self.x, self.y, self.s = None, None, None
+        self.dims = None
         if transform is None:
             self.transform = ToTensor()
         else:
@@ -74,9 +75,13 @@ class IV2aDataset(Dataset):
                 self.preprocessors[subject].fit(
                     subject_data["x_data"], subject_data["y_labels"])
 
-        self.x = np.concatenate([d["x_data"] for d in data])
-        self.y = np.concatenate([d["y_labels"] for d in data])
-        self.s = np.concatenate([d["subject"] for d in data])
+        self.x = np.concatenate([d["x_data"] for d in data]) # (N, C, T)
+        self.y = np.concatenate([d["y_labels"] for d in data]) # (N, )
+        self.s = np.concatenate([d["subject"] for d in data]) # (N, )
+
+        # Get input dimensions
+        ft = self.preprocessors[1].transform(self.x[0:2])
+        self.dims = [self.nb_segments] + list(ft.shape[1:]) + [1]
 
     def load_external_preprocessors(self, preprocessors: Dict[int, OVR_FBCSP]):
         for subject, prep in preprocessors.items():
@@ -116,7 +121,7 @@ class IV2aDataset(Dataset):
         pad_before = pad_width // 2
         pad_after = pad_width - pad_before
         x = np.pad(x, ((0, 0), (pad_before, pad_after)), mode="mean")
-        # split
+        # split to sequence
         seglen = x.shape[-1] // self.nb_segments
         segments = []
         for i in range(self.nb_segments):
@@ -124,8 +129,8 @@ class IV2aDataset(Dataset):
         segments = np.stack(segments)  # (nb_segments, C, T)
 
         # preprocess each segment with OVR-FBCSP
-        features = self.preprocessors[s].transform(
-            segments)  # (nb_segments, B, M)
+        features = self.preprocessors[s].transform(segments)  # (nb_segments, B, M)
+        features = np.expand_dims(features, 1) # (Nseg, 1, B, M)
 
         sample = {
             "ft": features,
