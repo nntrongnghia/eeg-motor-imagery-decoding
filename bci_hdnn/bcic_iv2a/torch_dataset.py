@@ -24,9 +24,10 @@ class IV2aDataset(Dataset):
     def __init__(self,
                  data_dir, nb_segments=4, train: bool = True,
                  include_subject: List[str] = [], exclude_subject: List[str] = [],
-                 tmin=0.0, tmax=4.0, transform=None) -> None:
+                 tmin=0.0, tmax=4.0, transform=None, nb_bands=9) -> None:
         super().__init__()
         self.nb_segments = nb_segments
+        self.nb_bands = nb_bands
         self.tmin, self.tmax = tmin, tmax
         self.train = train
         self.include_subjects = include_subject
@@ -44,14 +45,19 @@ class IV2aDataset(Dataset):
         self.subject_list = []
         for filename in self.dataset.filenames:
             s = filename[1:3]
+            # Only include subjects in include_subjects
+            # if this list is not empty
             if len(self.include_subjects) > 0:
                 if s not in self.include_subjects:
                     continue
+            # Exclude subjects in exclude_subjects
+            # if this list is not empty
             if len(self.exclude_subjects) > 0:
                 if s in self.exclude_subjects:
                     continue
             if s not in self.subject_list:
-                self.subject_list.append(int(s))
+                self.subject_list.append(s)
+        self.subject_list = [int(s) for s in self.subject_list]
 
     def load_data_and_preprocessors(self):
         data = []
@@ -69,7 +75,7 @@ class IV2aDataset(Dataset):
             subject_data["subject"] = np.array([int(subject_data["subject"])]*nb_trials)
             data.append(subject_data)
             self.preprocessors[subject] = OVR_FBCSP(
-                self.NB_CLASSES, subject_data["fs"])
+                self.NB_CLASSES, subject_data["fs"], self.nb_bands)
             if self.train:
                 logging.info(f"Fitting OVR-FBCSP for subject {subject} ...")
                 self.preprocessors[subject].fit(
@@ -133,7 +139,7 @@ class IV2aDataset(Dataset):
         features = np.expand_dims(features, 1) # (Nseg, 1, B, M)
 
         sample = {
-            "ft": features,
+            "ft": features.astype(np.float32),
             "y": y
         }
 

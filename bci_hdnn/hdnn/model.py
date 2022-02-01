@@ -2,10 +2,12 @@ from turtle import forward
 from typing import Tuple
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from ml_collections import ConfigDict
 
+
 class Backbone(nn.Module):
-    def __init__(self, input_dims: Tuple, cnn1_out_channels=4, 
+    def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
                  lstm_hidden_size=64, lstm_output_size=32,
                  lstm_input_size=32, lstm_num_layers=3) -> None:
         """Temporal and spatial feature extration
@@ -19,7 +21,7 @@ class Backbone(nn.Module):
             M: nb of features
         """
         super().__init__()
-        c1 = cnn1_out_channels # c1 for short
+        c1 = cnn1_out_channels  # c1 for short
         L, _, B, M = input_dims
         self.cnn1 = nn.Sequential(
             nn.Conv2d(1, c1, 5, padding="same"),
@@ -28,7 +30,7 @@ class Backbone(nn.Module):
         self.fc1 = nn.Sequential(
             nn.Linear(c1*B*M, lstm_input_size),
             nn.ReLU()
-        ) 
+        )
         self.cnn2 = nn.Sequential(
             nn.Conv2d(c1, c1*2, 3, padding="same"),
             nn.ReLU(),
@@ -39,14 +41,16 @@ class Backbone(nn.Module):
             nn.Conv2d(c1*4, c1*8, 3, padding="same"),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
-            nn.AdaptiveAvgPool2d((1, 1)) # Global Average Pool
+            nn.AdaptiveAvgPool2d((1, 1))  # Global Average Pool
         )
         self.lstm = nn.LSTM(
-            input_size=lstm_input_size, 
-            hidden_size=lstm_hidden_size, 
+            input_size=lstm_input_size,
+            hidden_size=lstm_hidden_size,
             proj_size=lstm_output_size,
             num_layers=lstm_num_layers,
             batch_first=True)
+        if lstm_output_size == 0:
+            lstm_output_size = lstm_hidden_size
         self.output_dims = L*(8*c1 + lstm_output_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -76,22 +80,26 @@ class Backbone(nn.Module):
 
 
 class HDNN(nn.Module):
-    def __init__(self, config: ConfigDict) -> None:
+    def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
+                 lstm_hidden_size=64, lstm_output_size=32,
+                 lstm_input_size=32, lstm_num_layers=3,
+                 p_dropout=0.2, nb_classes=4) -> None:
         super().__init__()
-        self.backbone = Backbone(**config)
+        self.backbone = Backbone(input_dims, cnn1_out_channels,
+                                 lstm_hidden_size, lstm_output_size,
+                                 lstm_input_size, lstm_num_layers)
         self.head = nn.Sequential(
             nn.Linear(self.backbone.output_dims, 512),
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Dropout(config.p_dropout),
+            nn.Dropout(p_dropout),
             nn.Linear(512, 32),
             nn.ReLU(),
-            nn.Linear(32, config.nb_classes),
-            nn.Softmax()
+            nn.Linear(32, nb_classes),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, return_score=False) -> torch.Tensor:
         """HDNN forward
 
         Parameters
@@ -107,10 +115,14 @@ class HDNN(nn.Module):
             shape (bs, nb_classes)
         """
         x = self.backbone(x)
-        scores = self.head(x)
-        return scores
+        logits = self.head(x)
+        if return_score:
+            return torch.softmax(logits, dim=-1)
+        else:
+            return logits
 
-# test 
+
+# test
 if __name__ == "__main__":
     backbone = Backbone((4, 1, 9, 16))
     x = torch.rand(32, 4, 1, 9, 16)

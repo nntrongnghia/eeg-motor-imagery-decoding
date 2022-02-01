@@ -8,14 +8,15 @@ from bci_hdnn.bcic_iv2a.torch_dataset import IV2aDataset
 
 
 class IV2aDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir, batch_size=32, train_ratio=0.8, nb_segments=4,
+    def __init__(self, data_dir, batch_size=32, train_ratio=0.8, nb_segments=4, nb_bands=9,
                  include_subject: List[str] = [], exclude_subject: List[str] = [],
-                 tmin=0.0, tmax=4.0, train_transform=None, test_transform=None):
+                 tmin=0.0, tmax=4.0, train_transform=None, test_transform=None, **kwargs):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.train_ratio = train_ratio
         self.nb_segments = nb_segments
+        self.nb_bands = nb_bands
         self.tmin, self.tmax = tmin, tmax
         self.include_subjects = include_subject
         self.exclude_subjects = exclude_subject
@@ -41,9 +42,9 @@ class IV2aDataModule(pl.LightningDataModule):
             If None, all stages will be set up. By default None
         """
         if stage in (None, "fit"):
-            dataset = IV2aDataset(
-                self.data_dir, self.nb_segments, True, self.include_subjects,
-                self.exclude_subjects, self.tmin, self.tmax, self.train_transforms)
+            dataset = IV2aDataset(self.data_dir, self.nb_segments, True, 
+                self.include_subjects, self.exclude_subjects, self.tmin, self.tmax, 
+                self.train_transforms, self.nb_bands)
             dataset.setup()
             self.preprocessors = deepcopy(dataset.preprocessors)
             self.dims = deepcopy(dataset.dims)
@@ -55,16 +56,16 @@ class IV2aDataModule(pl.LightningDataModule):
 
         if stage in (None, "test"):
             if self.preprocessors is None:
-                train_dataset = IV2aDataset(
-                    self.data_dir, self.nb_segments, True, self.include_subjects,
-                    self.exclude_subjects, self.tmin, self.tmax, self.train_transforms)
+                train_dataset = IV2aDataset(self.data_dir, self.nb_segments, True, 
+                    self.include_subjects, self.exclude_subjects, self.tmin, self.tmax, 
+                    self.train_transforms, self.nb_bands)
                 train_dataset.setup()
                 self.preprocessors = deepcopy(dataset.preprocessors)
                 del train_dataset
 
-            self.testset = IV2aDataset(
-                self.data_dir, self.nb_segments, False, self.include_subjects,
-                self.exclude_subjects, self.tmin, self.tmax, self.test_transforms)
+            self.testset = IV2aDataset(self.data_dir, self.nb_segments, False, 
+                self.include_subjects, self.exclude_subjects, self.tmin, self.tmax, 
+                self.test_transforms, self.nb_bands)
             self.testset.setup()
             self.testset.load_external_preprocessors(self.preprocessors)
             self._has_setup_test = True

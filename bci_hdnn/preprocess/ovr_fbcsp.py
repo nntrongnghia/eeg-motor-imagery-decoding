@@ -6,7 +6,7 @@ from bci_hdnn.preprocess.csp import CSP
 
 class OVR_FBCSP:
     def __init__(self,
-                 nb_classes: int, fs: float,
+                 nb_classes: int, fs: float, nb_bands=9,
                  f_width=4.0, f_min=4.0, f_max=40.0, m_filters=2):
         """One Versus Rest - Filter Bank Common Spatial Pattern
 
@@ -25,7 +25,7 @@ class OVR_FBCSP:
         m_filters : int, optional
             Number of CSP filters, by default 2
         """
-        self.filter = FilterBank(fs, f_width, f_min, f_max)
+        self.filter = FilterBank(fs, nb_bands, f_width, f_min, f_max)
         # CSP for each class of each filter band
         self.csps = [[CSP(m_filters) for _ in range(nb_classes)]
                      for _ in self.filter.filter_freqs]

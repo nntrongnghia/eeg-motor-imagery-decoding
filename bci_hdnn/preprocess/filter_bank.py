@@ -4,7 +4,7 @@ from scipy.signal import cheb2ord
 
 
 class FilterBank:
-    def __init__(self, fs, f_width=4.0, f_min=4.0, f_max=40.0):
+    def __init__(self, fs, nb_bands=9, f_width=4.0, f_min=4.0, f_max=40.0):
         """Filter Bank class. __call__ method will apply 
         passband Chebyshev type II filters.
 
@@ -19,12 +19,14 @@ class FilterBank:
         f_max : int, optional
             Max frequency in Hz, by default 40
         """
+        self.B = nb_bands
         self.fs = fs
         self.f_min = f_min
         self.f_max = f_max
         self.f_width = f_width
         self.f_trans = 2  # transition width in Hz
-        self.f_pass = np.arange(f_min, f_max, f_width)
+        self.f_pass = np.linspace(f_min, f_max, nb_bands, endpoint=False)
+        # self.f_pass = np.arange(f_min, f_max, f_width)
         self.gpass = 3
         self.gstop = 40
         self.filter_coeff, self.filter_freqs = self.get_filter_coeff()
