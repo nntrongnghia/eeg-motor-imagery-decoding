@@ -1,10 +1,30 @@
 from copy import deepcopy
-from typing import List, Optional
+from typing import List, Optional, Tuple
+
 import numpy as np
-import torch
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader, random_split
+import torch
 from bci_hdnn.bcic_iv2a.torch_dataset import IV2aDataset
+from torch.utils.data import DataLoader, Dataset, random_split
+from sklearn.model_selection import StratifiedShuffleSplit    
+
+
+def split_train_val(dataset:IV2aDataset, train_ratio=0.8) -> Tuple[IV2aDataset]:
+    spliter = StratifiedShuffleSplit(1, train_size=train_ratio)
+    y = dataset.y + dataset.s*10
+    train_idx, val_idx = next(spliter.split(dataset.x, y))
+    val_dataset = deepcopy(dataset)
+    train_dataset = dataset
+
+    val_dataset.x = val_dataset.x[val_idx]
+    val_dataset.y = val_dataset.y[val_idx]
+    val_dataset.s = val_dataset.s[val_idx]
+
+    train_dataset.x = train_dataset.x[train_idx]
+    train_dataset.y = train_dataset.y[train_idx]
+    train_dataset.s = train_dataset.s[train_idx]
+    
+    return train_dataset, val_dataset
 
 
 class IV2aDataModule(pl.LightningDataModule):
@@ -48,10 +68,7 @@ class IV2aDataModule(pl.LightningDataModule):
             dataset.setup()
             self.preprocessors = deepcopy(dataset.preprocessors)
             self.dims = deepcopy(dataset.dims)
-            train_len = int(len(dataset)*self.train_ratio)
-            val_len = len(dataset) - train_len
-            self.trainset, self.valset = random_split(
-                dataset, [train_len, val_len])
+            self.trainset, self.valset = split_train_val(dataset, self.train_ratio)
             self._has_setup_fit = True
 
         if stage in (None, "test"):
@@ -81,3 +98,18 @@ class IV2aDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.testset, batch_size=self.batch_size,
                           shuffle=self.shuffle, num_workers=self.num_workers)
+
+
+# test code
+if __name__ == "__main__":
+    import pytorch_lightning as pl
+
+    # for reproducibility
+    pl.seed_everything(42, workers=True)
+    from bci_hdnn.hdnn.config import hdnn_base_config
+
+    config = hdnn_base_config()
+    data_dir = "/home/nghia/dataset/BCI_IV_2a"
+    datamodule = IV2aDataModule(data_dir, exclude_subject=["01"], **config)
+    datamodule.setup(stage="fit")
+    print("Done")

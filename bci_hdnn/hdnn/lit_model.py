@@ -1,38 +1,38 @@
 from typing import Tuple
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
 import pytorch_lightning as pl
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchmetrics import CohenKappa, ConfusionMatrix, AveragePrecision
 from bci_hdnn.hdnn import HDNN
+from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
 
 
-class LitHDNN(pl.LightningModule):
-    def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
-                 lstm_hidden_size=64, lstm_output_size=32,
-                 lstm_input_size=32, lstm_num_layers=3,
-                 p_dropout=0.2, nb_classes=4, lr=0.001, **kwargs) -> None:
+class LitModel(pl.LightningModule):
+    def __init__(self, model: nn.Module, nb_classes=4, lr=0.001, **kwargs) -> None:
         super().__init__()
         self.lr = lr
-        self.model = HDNN(input_dims, cnn1_out_channels,
-                          lstm_hidden_size, lstm_output_size,
-                          lstm_input_size, lstm_num_layers,
-                          p_dropout, nb_classes)
+        self.model = model
         self.kappa = CohenKappa(nb_classes)
-        self.confusion = ConfusionMatrix(nb_classes)
+        # self.confusion = ConfusionMatrix(nb_classes)
+        self.accuracy = Accuracy()
+        self.nb_classes = nb_classes
 
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=0.001)
     
-    def forward(self, x, return_score=False):
-        return self.model(x, return_score)
+    def forward(self, x):
+        return self.model(x)
     
     def training_step(self, batch, batch_idx):
         x, y = batch["ft"], batch["y"].reshape(-1,)
         logits = self(x)
         loss = F.cross_entropy(logits, y)
-        self.log("train_loss", loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -46,15 +46,28 @@ class LitHDNN(pl.LightningModule):
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.kappa(ypred, y)
-        self.confusion(ypred, y)
+        # self.confusion(ypred, y)
+        self.accuracy(ypred, y)
         return loss
 
-    def validation_epoch_end(self, outputs):
-        self.log("val_consufion", self.confusion.compute())
-        self.log("val_kappa", self.kappa.compute())
+    def log_confusion_matrix(self):
+        confusion_matrix = self.confusion.compute().cpu().numpy()
+        df_cm = pd.DataFrame(
+            confusion_matrix, 
+            index=range(self.nb_classes), 
+            columns=range(self.nb_classes))
+        plt.figure(figsize = (10,7))
+        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
+        plt.close(fig_)
+        self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
 
-        self.confusion.reset()
+    def validation_epoch_end(self, outputs):
+        # self.log_confusion_matrix()
+        # self.confusion.reset()
+        self.log("val_kappa", self.kappa.compute())
+        self.log("val_accuracy", self.accuracy.compute())
         self.kappa.reset()
+        self.accuracy.reset()
 
         
 

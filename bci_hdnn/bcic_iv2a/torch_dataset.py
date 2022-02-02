@@ -6,17 +6,9 @@ import numpy as np
 import torch
 from bci_hdnn.bcic_iv2a import BCIC_IV2a
 from bci_hdnn.preprocess import OVR_FBCSP
-from torch.utils.data import Dataset, random_split
+from torch.utils.data import Dataset
+from bci_hdnn.bcic_iv2a.transform import ToTensor
 
-class ToTensor(object):
-    """Convert ndarrays in sample to Tensors."""
-
-    def __call__(self, sample: Dict[str, np.ndarray]):
-        tensors = {
-            key: torch.from_numpy(values)
-            for key, values in sample.items()
-        }
-        return tensors
 
 class IV2aDataset(Dataset):
     NB_CLASSES = 4
@@ -24,7 +16,8 @@ class IV2aDataset(Dataset):
     def __init__(self,
                  data_dir, nb_segments=4, train: bool = True,
                  include_subject: List[str] = [], exclude_subject: List[str] = [],
-                 tmin=0.0, tmax=4.0, transform=None, nb_bands=9) -> None:
+                 tmin=0.0, tmax=4.0, transform=None, nb_bands=9,
+                 t_csp_start=0.5, t_csp_end=2.5) -> None:
         super().__init__()
         self.nb_segments = nb_segments
         self.nb_bands = nb_bands
@@ -32,13 +25,12 @@ class IV2aDataset(Dataset):
         self.train = train
         self.include_subjects = include_subject
         self.exclude_subjects = exclude_subject
+        self.t_csp_start = t_csp_start
+        self.t_csp_end = t_csp_end
         self.dataset = BCIC_IV2a(data_dir)
         self.x, self.y, self.s = None, None, None
         self.dims = None
-        if transform is None:
-            self.transform = ToTensor()
-        else:
-            self.transform = transform
+        self.transform = transform
         # self.setup()
 
     def build_subject_list(self):
@@ -74,20 +66,24 @@ class IV2aDataset(Dataset):
             nb_trials = subject_data["x_data"].shape[0]
             subject_data["subject"] = np.array([int(subject_data["subject"])]*nb_trials)
             data.append(subject_data)
+            fs = subject_data["fs"]
             self.preprocessors[subject] = OVR_FBCSP(
-                self.NB_CLASSES, subject_data["fs"], self.nb_bands)
+                self.NB_CLASSES, fs, self.nb_bands)
             if self.train:
                 logging.info(f"Fitting OVR-FBCSP for subject {subject} ...")
                 self.preprocessors[subject].fit(
-                    subject_data["x_data"], subject_data["y_labels"])
+                    subject_data["x_data"][..., int(self.t_csp_start*fs):int(self.t_csp_end*fs)], 
+                    subject_data["y_labels"])
 
         self.x = np.concatenate([d["x_data"] for d in data]) # (N, C, T)
         self.y = np.concatenate([d["y_labels"] for d in data]) # (N, )
         self.s = np.concatenate([d["subject"] for d in data]) # (N, )
 
         # Get input dimensions
-        ft = self.preprocessors[1].transform(self.x[0:2])
+        ft = self.preprocessors[self.subject_list[0]].transform(self.x[0:2])
         self.dims = [self.nb_segments] + list(ft.shape[1:]) + [1]
+
+
 
     def load_external_preprocessors(self, preprocessors: Dict[int, OVR_FBCSP]):
         for subject, prep in preprocessors.items():
@@ -117,9 +113,13 @@ class IV2aDataset(Dataset):
 
     def __getitem__(self, idx):
         assert self.x is not None, "self.setup should be run first"
+        # NOTE: hardcode
         x = self.x[idx]  # (C, T)
         y = self.y[idx].reshape((-1, ))
         s = self.s[idx]
+
+        if self.transform is not None:
+            x = self.transform(x)
 
         # === split signals to multiple segments
         # zero padding
@@ -140,19 +140,24 @@ class IV2aDataset(Dataset):
 
         sample = {
             "ft": features.astype(np.float32),
-            "y": y
+            "y": y,
         }
 
-        sample = self.transform(sample)
+        sample = ToTensor()(sample)
 
         return sample
 
 
 # test code
 if __name__ == "__main__":
+    from sklearn.model_selection import StratifiedShuffleSplit   
     logging.getLogger().setLevel(logging.INFO)
     dataset = IV2aDataset("/home/nghia/dataset/BCI_IV_2a")
     dataset.setup()
     print(len(dataset))
-    print(dataset[0])
+    spliter = StratifiedShuffleSplit(1, train_size=0.8)
+    y = dataset.y + dataset.s*10
+    train_idx, val_idx = next(spliter.split(dataset.x, y))
+    print("Train split", np.unique(y[train_idx], return_counts=True))
+    print("Val split", np.unique(y[val_idx], return_counts=True))
     print("Done")

@@ -25,21 +25,21 @@ class Backbone(nn.Module):
         L, _, B, M = input_dims
         self.cnn1 = nn.Sequential(
             nn.Conv2d(1, c1, 5, padding="same"),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
         self.fc1 = nn.Sequential(
             nn.Linear(c1*B*M, lstm_input_size),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
         self.cnn2 = nn.Sequential(
             nn.Conv2d(c1, c1*2, 3, padding="same"),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(c1*2, c1*4, 3, padding="same"),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(c1*4, c1*8, 3, padding="same"),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
             nn.AdaptiveAvgPool2d((1, 1))  # Global Average Pool
         )
@@ -83,21 +83,23 @@ class HDNN(nn.Module):
     def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
                  lstm_hidden_size=64, lstm_output_size=32,
                  lstm_input_size=32, lstm_num_layers=3,
-                 p_dropout=0.2, nb_classes=4) -> None:
+                 p_dropout=0.2, head_hidden_dim=512, nb_classes=4, **kwargs) -> None:
         super().__init__()
         self.backbone = Backbone(input_dims, cnn1_out_channels,
                                  lstm_hidden_size, lstm_output_size,
                                  lstm_input_size, lstm_num_layers)
         self.head = nn.Sequential(
-            nn.Linear(self.backbone.output_dims, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
+            nn.Linear(self.backbone.output_dims, head_hidden_dim),
+            nn.LeakyReLU(),
             nn.Dropout(p_dropout),
-            nn.Linear(512, 32),
-            nn.ReLU(),
+            nn.Linear(head_hidden_dim, head_hidden_dim),
+            nn.LeakyReLU(),
+            nn.Dropout(p_dropout),
+            nn.Linear(head_hidden_dim, 32),
+            nn.LeakyReLU(),
             nn.Linear(32, nb_classes),
         )
+
 
     def forward(self, x: torch.Tensor, return_score=False) -> torch.Tensor:
         """HDNN forward
@@ -120,6 +122,8 @@ class HDNN(nn.Module):
             return torch.softmax(logits, dim=-1)
         else:
             return logits
+
+
 
 
 # test
