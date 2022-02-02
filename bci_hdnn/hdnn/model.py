@@ -1,5 +1,6 @@
 from turtle import forward
 from typing import Tuple
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,7 +10,7 @@ from ml_collections import ConfigDict
 class Backbone(nn.Module):
     def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
                  lstm_hidden_size=64, lstm_output_size=32,
-                 lstm_input_size=32, lstm_num_layers=3) -> None:
+                 lstm_input_size=32, lstm_num_layers=3, p_dropout=0.2) -> None:
         """Temporal and spatial feature extration
 
         Parameters
@@ -36,12 +37,13 @@ class Backbone(nn.Module):
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(c1*2, c1*4, 3, padding="same"),
+            nn.Dropout2d(p_dropout),
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(c1*4, c1*8, 3, padding="same"),
+            nn.Dropout2d(p_dropout),
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
-            nn.AdaptiveAvgPool2d((1, 1))  # Global Average Pool
         )
         self.lstm = nn.LSTM(
             input_size=lstm_input_size,
@@ -51,7 +53,13 @@ class Backbone(nn.Module):
             batch_first=True)
         if lstm_output_size == 0:
             lstm_output_size = lstm_hidden_size
-        self.output_dims = L*(8*c1 + lstm_output_size)
+
+        cnn2_out_shape = (
+            max(B // 8, 1), 
+            max(M // 8, 1)
+        )
+        cnn2_out_res = cnn2_out_shape[0]*cnn2_out_shape[1]
+        self.output_dims = L*(8*c1*cnn2_out_res + lstm_output_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Backbone forward
@@ -87,7 +95,7 @@ class HDNN(nn.Module):
         super().__init__()
         self.backbone = Backbone(input_dims, cnn1_out_channels,
                                  lstm_hidden_size, lstm_output_size,
-                                 lstm_input_size, lstm_num_layers)
+                                 lstm_input_size, lstm_num_layers, p_dropout)
         self.head = nn.Sequential(
             nn.Linear(self.backbone.output_dims, head_hidden_dim),
             nn.LeakyReLU(),

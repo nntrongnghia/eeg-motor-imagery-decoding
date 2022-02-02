@@ -23,7 +23,8 @@ class LitModel(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=0.001)
+        # return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=0.001)
+        return torch.optim.SGD(self.parameters(), lr=0.01, momentum=0.9)
     
     def forward(self, x):
         return self.model(x)
