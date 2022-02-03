@@ -1,1 +1,2 @@
-from .ovr_fbcsp import OVR_FBCSP
+from .ovr_csp import OVR_CSP
+from .filter_bank import FilterBank

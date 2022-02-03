@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 import scipy.signal as signal
 from scipy.signal import cheb2ord
@@ -58,7 +59,7 @@ class FilterBank:
             filter_freqs.append({"pass": f_pass, "stop": f_stop})
         return filter_coeff, filter_freqs
 
-    def filter_data(self, eeg_data: np.ndarray) -> np.ndarray:
+    def filter_data(self, eeg_data: np.ndarray, time_window: Tuple[int]=None) -> np.ndarray:
         """Filter data by Filter Bank
 
         Parameters
@@ -67,6 +68,10 @@ class FilterBank:
             EEG signals, shape (N, C, T)
             N trials, C channels, T discrete time
 
+        time_window : Tuple[int]
+            Tuple of (start index, end index)
+            to slice the result
+
         Returns
         -------
         np.ndarray
@@ -74,15 +79,18 @@ class FilterBank:
             B number of filter bands
         """
         n_trials, n_channels, n_samples = eeg_data.shape
+        if time_window is not None:
+            n_samples = time_window[-1] - time_window[0]
+            start = time_window[0]
+            end = time_window[1]
+        else:
+            start = 0
+            end = n_samples
         filtered_data = np.zeros(
             (len(self.filter_coeff), n_trials, n_channels, n_samples))
         for i, filter_ab in enumerate(self.filter_coeff):
             b = filter_ab.get('b')
             a = filter_ab.get('a')
-            filtered_data[i] = signal.lfilter(b, a, eeg_data)
+            filtered_data[i] = signal.lfilter(b, a, eeg_data)[..., start:end]
         return filtered_data
 
-    def __call__(self, eeg_data):
-        """Wrapper for filter_data method
-        """
-        return self.filter_data(eeg_data)

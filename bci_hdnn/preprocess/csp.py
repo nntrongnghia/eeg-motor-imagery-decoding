@@ -15,6 +15,8 @@ class CSP:
         self.m_filters = m_filters
         # Transformation matrix, shape (C, 2*m)
         self.Wb = None
+        # Full W matrix, shape (C, C)
+        self.W = None
 
     def fit(self, x_data: np.ndarray, y_labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Find the transformation matrix Wb in CSP algorithm. 
@@ -57,7 +59,7 @@ class CSP:
         sort_indices = np.argsort(np.abs(eig_values))[::-1]
         eig_values = eig_values[sort_indices]
         u_mat = u_mat[:,sort_indices]
-
+        self.W = u_mat
         # Save Wb matrix which is the first m columns and the last m columns of W
         self.Wb = np.concatenate([
             u_mat[:, :self.m_filters],

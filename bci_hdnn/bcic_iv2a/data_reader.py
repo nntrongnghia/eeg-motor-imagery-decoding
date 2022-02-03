@@ -45,7 +45,7 @@ class BCIC_IV2a:
         logging.info(f"Read {filepath}")
         return mne.io.read_raw_gdf(filepath, verbose="ERROR")
 
-    def read_file(self, filename: str, tmin=0.0, tmax=3.0, baseline=None):
+    def read_file(self, filename: str, tmin=-2.0, tmax=5.0, baseline=None):
         """Get data as np.ndarray from a given filename
 
         Parameters

@@ -1,5 +1,5 @@
 import random
-from typing import Dict
+from typing import Dict, Union
 import torch
 import torchvision.transforms as T
 import numpy as np
@@ -44,16 +44,17 @@ class TemporalRandomCrop(object):
 
 
 class TemporalCrop(object):
-    def __init__(self, size, position:str="center"):
+    def __init__(self, size, position:Union[str, int]="center"):
         """Temporally crop the given frame 
 
         Parameters
         ----------
         size: int
             Time size to crop
-        position: str
+        position: str or int
             Position to crop
-            Either: "center", "begin", "end"
+            If str, either: "center", "begin", "end"
+            If int: index of the beginning of the slice
         """
         assert position in ["center", "begin", "end"]
         position_enum = {
@@ -103,6 +104,6 @@ class GaussianNoise(object):
      
 def eeg_augmentation(temporal_size:int, noise_srn=50,**kwargs):
     return T.Compose([
-        TemporalRandomCrop(temporal_size),
+        # TemporalRandomCrop(temporal_size),
         GaussianNoise(noise_srn)
     ])

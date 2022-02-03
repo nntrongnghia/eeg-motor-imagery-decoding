@@ -7,10 +7,11 @@ from bci_hdnn.model import HDNN, MLP
 
 def hdnn_base_config():
     cfg = ConfigDict()
-    
+    fs = 250
     # Data config
-    cfg.tmin = 0.0
+    cfg.tmin = -2.0
     cfg.tmax = 4.0
+    cfg.time_window = (int(-cfg.tmin+0)*fs, int(-cfg.tmin+4.0)*fs+1)
     cfg.nb_bands = B = 16 # B
     cfg.nb_segments = L = 4 # L default=4
     cfg.m_filters = 2
@@ -25,7 +26,7 @@ def hdnn_base_config():
     cfg.temporal_size = int(3.5*250)
     cfg.noise_srn = 50
     cfg.train_transform = T.eeg_augmentation(cfg.temporal_size, cfg.noise_srn)
-    cfg.test_transform = T.TemporalCrop(cfg.temporal_size)
+    # cfg.test_transform = T.TemporalCrop(cfg.temporal_size)
 
     # HDNN config
     cfg.model_class = HDNN
