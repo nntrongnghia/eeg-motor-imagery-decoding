@@ -16,8 +16,7 @@ class ToTensor(object):
 
 class TemporalRandomCrop(object):
     """Temporally crop the given frame indices at a random location.
-    If the number of frames is less than the size,
-    loop the indices as many times as necessary to satisfy the size.
+    
     Args:
         size (int): Desired output size of the crop.
     """
@@ -34,12 +33,76 @@ class TemporalRandomCrop(object):
             np.ndarray
                 EEG signal
         """
-        center_index = random.randint(0, x.shape[-1])
-        start = max(center_index - self.size, 0)
-        end = start + self.size
+        T = x.shape[-1]
+        if T < self.size:
+            raise ValueError("Time length shorter than crop length")
+        margin = self.size//2 + 1
+        center_index = random.randint(margin, T - margin)
+        start = max(center_index - self.size//2, 0)
+        end = start + self.size        
         return x[..., start:end]
-        
-def eeg_augmentation(temporal_size:int, **kwargs):
+
+
+class TemporalCrop(object):
+    def __init__(self, size, position:str="center"):
+        """Temporally crop the given frame 
+
+        Parameters
+        ----------
+        size: int
+            Time size to crop
+        position: str
+            Position to crop
+            Either: "center", "begin", "end"
+        """
+        assert position in ["center", "begin", "end"]
+        position_enum = {
+            "center": 0,
+            "begin": 1,
+            "end": 2
+        }
+        self.position = position_enum[position]
+        self.size = size
+
+    def __call__(self, x: np.ndarray):
+        """
+        Args:
+            x: np.ndarray
+                EEG signal, shape (C, T)
+        Returns:
+            np.ndarray
+                EEG signal
+        """
+        if self.position == 0: # center
+            center_idx = x.shape[-1] // 2
+            start = max(center_idx - self.size//2, 0)
+            end = min(start + self.size, x.shape[-1])
+        elif self.position == 1: # begin
+            start = 0
+            end = min(start + self.size, x.shape[-1])
+        elif self.position == 2: # end
+            end = x.shape[-1]
+            start = max(end - self.size, 0)
+        else:
+            raise ValueError("invalid position")
+        return x[..., start:end]
+
+
+class GaussianNoise(object):
+    def __init__(self, snr=20) -> None:
+        """Addictive Gaussian Noise with given SNR
+        """
+        self.snr = snr
+
+    def __call__(self, x: np.ndarray)->np.ndarray:
+        xrms = np.abs(x.max() - x.min())/2
+        noise_rms = 10**(np.log10(xrms) - self.snr/20)
+        noise = np.random.randn(*x.shape)*2*noise_rms
+        return x + noise
+
+     
+def eeg_augmentation(temporal_size:int, noise_srn=50,**kwargs):
     return T.Compose([
         TemporalRandomCrop(temporal_size),
+        GaussianNoise(noise_srn)
     ])

@@ -1,17 +1,21 @@
 import argparse
-from datetime import datetime
+import logging
 import os
+from datetime import datetime
 
 import pytorch_lightning as pl
 # for reproducibility
 pl.seed_everything(42, workers=True)
 
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
-import bci_hdnn.hdnn.config as config_collection
+import bci_hdnn.model.config as config_collection
 from bci_hdnn.bcic_iv2a import IV2aDataModule
-from bci_hdnn.hdnn import LitModel
+from bci_hdnn.model import LitModel
 
+logging.getLogger().setLevel(logging.INFO)
 
 def get_argument_parser():
     parser = argparse.ArgumentParser()
@@ -28,23 +32,67 @@ def main(args):
 
     lit_model = LitModel(**config)
 
-    expe_name = "{}_{:%y-%b-%d-%Hh-%M}".format(args.config, datetime.now())
+    expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(args.config, args.subject, datetime.now())
 
-    # # === Pre-train
-    logger = TensorBoardLogger("lightning_logs", name=expe_name, version="pretrain")
-    datamodule = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)
-    datamodule.setup(stage="fit")
-    trainer = pl.Trainer.from_argparse_args(args, logger=logger)
-    trainer.fit(lit_model, datamodule=datamodule)
-    # # === Finetune
-    # datamodule = IV2aDataModule(args.data_dir, include_subject=[args.subject], **config)
-    # datamodule.setup(stage="fit")
-    # trainer = pl.Trainer.from_argparse_args(args)
-    # trainer.fit(lit_model, datamodule=datamodule)
+    # =====================
+    # ==== Pre-train ======
+    # =====================
+    tb_logger = TensorBoardLogger("lightning_logs", name=expe_name, 
+        version=f"pretrain_{args.subject}")
 
-    # # === Test
-    # datamodule.setup(stage="test")
-    # trainer.test(lit_model, datamodule=datamodule)
+    ckpt_name = f"s{args.subject}_pretrain_best"
+    pretrain_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
+
+    callbacks = [
+        EarlyStopping(monitor="val_kappa", mode="max", patience=20),
+        ModelCheckpoint(monitor="val_kappa", mode="max",
+            filename=ckpt_name,
+            dirpath=tb_logger.log_dir)
+    ]
+
+    datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)
+    datamodule_pretrain.setup(stage="fit")
+    
+    trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
+    trainer.fit(lit_model, datamodule=datamodule_pretrain)
+    
+    del datamodule_pretrain # clean after use
+
+    # =====================
+    # ==== Finetune =======
+    # =====================
+    lit_model.load_from_checkpoint(pretrain_ckpt_path, 
+        model_class=config.model_class, 
+        model_kwargs=config.model_kwargs)
+    lit_model.finetune()
+
+    tb_logger = TensorBoardLogger("lightning_logs", name=expe_name, 
+        version=f"finetune_{args.subject}")
+
+    ckpt_name = f"s{args.subject}_finetune_best"
+    finetune_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
+
+    callbacks = [
+        EarlyStopping(monitor="val_kappa", mode="max", patience=20),
+        ModelCheckpoint(monitor="val_kappa", mode="max",
+            filename=ckpt_name,
+            dirpath=tb_logger.log_dir)
+    ]
+
+    datamodule_fintune = IV2aDataModule(args.data_dir, include_subject=[args.subject], **config)
+    datamodule_fintune.setup(stage="fit")
+    
+    trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
+    trainer.fit(lit_model, datamodule=datamodule_fintune)
+
+    # =====================
+    # ==== Test ===========
+    # =====================
+    lit_model.load_from_checkpoint(finetune_ckpt_path, 
+        model_class=config.model_class, 
+        model_kwargs=config.model_kwargs)
+    datamodule_fintune.setup(stage="test")
+    trainer.test(lit_model, datamodule=datamodule_fintune)
 
 if __name__ == "__main__":
     

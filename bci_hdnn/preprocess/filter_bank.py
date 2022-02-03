@@ -28,7 +28,7 @@ class FilterBank:
         self.f_pass = np.linspace(f_min, f_max, nb_bands, endpoint=False)
         # self.f_pass = np.arange(f_min, f_max, f_width)
         self.gpass = 3
-        self.gstop = 40
+        self.gstop = 30
         self.filter_coeff, self.filter_freqs = self.get_filter_coeff()
 
     def get_filter_coeff(self):

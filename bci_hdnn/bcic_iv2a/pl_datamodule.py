@@ -69,6 +69,7 @@ class IV2aDataModule(pl.LightningDataModule):
             self.preprocessors = deepcopy(dataset.preprocessors)
             self.dims = deepcopy(dataset.dims)
             self.trainset, self.valset = split_train_val(dataset, self.train_ratio)
+            self.valset.transform = self.test_transforms
             self._has_setup_fit = True
 
         if stage in (None, "test"):
@@ -83,8 +84,8 @@ class IV2aDataModule(pl.LightningDataModule):
             self.testset = IV2aDataset(self.data_dir, self.nb_segments, False, 
                 self.include_subjects, self.exclude_subjects, self.tmin, self.tmax, 
                 self.test_transforms, self.nb_bands)
-            self.testset.setup()
             self.testset.load_external_preprocessors(self.preprocessors)
+            self.testset.setup()
             self._has_setup_test = True
 
     def train_dataloader(self):
@@ -106,7 +107,7 @@ if __name__ == "__main__":
 
     # for reproducibility
     pl.seed_everything(42, workers=True)
-    from bci_hdnn.hdnn.config import hdnn_base_config
+    from bci_hdnn.model.config import hdnn_base_config
 
     config = hdnn_base_config()
     data_dir = "/home/nghia/dataset/BCI_IV_2a"

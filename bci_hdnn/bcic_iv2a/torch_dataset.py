@@ -53,8 +53,8 @@ class IV2aDataset(Dataset):
 
     def load_data_and_preprocessors(self):
         data = []
-        self.preprocessors = {s: None for s in self.subject_list}
         if self.train:
+            self.preprocessors = {s: None for s in self.subject_list}
             filenames = [name for name in self.dataset.filenames if "T" in name]
         else:
             filenames = [name for name in self.dataset.filenames if "E" in name]
@@ -67,9 +67,8 @@ class IV2aDataset(Dataset):
             subject_data["subject"] = np.array([int(subject_data["subject"])]*nb_trials)
             data.append(subject_data)
             fs = subject_data["fs"]
-            self.preprocessors[subject] = OVR_FBCSP(
-                self.NB_CLASSES, fs, self.nb_bands)
             if self.train:
+                self.preprocessors[subject] = OVR_FBCSP(self.NB_CLASSES, fs, self.nb_bands)
                 logging.info(f"Fitting OVR-FBCSP for subject {subject} ...")
                 self.preprocessors[subject].fit(
                     subject_data["x_data"][..., int(self.t_csp_start*fs):int(self.t_csp_end*fs)], 
@@ -80,12 +79,13 @@ class IV2aDataset(Dataset):
         self.s = np.concatenate([d["subject"] for d in data]) # (N, )
 
         # Get input dimensions
+        if self.preprocessors[self.subject_list[0]] is None:
+            raise ValueError("You should setup dataset in `train=True` or use self.load_external_preprocessors")
         ft = self.preprocessors[self.subject_list[0]].transform(self.x[0:2])
         self.dims = [self.nb_segments] + list(ft.shape[1:]) + [1]
 
-
-
     def load_external_preprocessors(self, preprocessors: Dict[int, OVR_FBCSP]):
+        self.preprocessors = {}
         for subject, prep in preprocessors.items():
             self.preprocessors[subject] = deepcopy(prep)
 
@@ -93,6 +93,7 @@ class IV2aDataset(Dataset):
         logging.info("IV2aDataset setup ...")
         self.build_subject_list()
         self.load_data_and_preprocessors()
+        
 
     def clean_memory(self):
         """Clean arrays to reduce memory footprint
@@ -137,9 +138,11 @@ class IV2aDataset(Dataset):
         # preprocess each segment with OVR-FBCSP
         features = self.preprocessors[s].transform(segments)  # (nb_segments, B, M)
         features = np.expand_dims(features, 1) # (Nseg, 1, B, M)
+        # features *= -1.0
 
         sample = {
-            "ft": features.astype(np.float32),
+            "eeg": x.astype(np.float32),
+            "ovr-fbcsp": features.astype(np.float32),
             "y": y,
         }
 

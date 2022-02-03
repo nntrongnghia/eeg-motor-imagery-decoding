@@ -37,11 +37,11 @@ class Backbone(nn.Module):
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(c1*2, c1*4, 3, padding="same"),
-            nn.Dropout2d(p_dropout),
+            # nn.Dropout2d(p_dropout),
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(c1*4, c1*8, 3, padding="same"),
-            nn.Dropout2d(p_dropout),
+            # nn.Dropout2d(p_dropout),
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
         )
@@ -60,6 +60,8 @@ class Backbone(nn.Module):
         )
         cnn2_out_res = cnn2_out_shape[0]*cnn2_out_shape[1]
         self.output_dims = L*(8*c1*cnn2_out_res + lstm_output_size)
+
+            
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Backbone forward
@@ -107,6 +109,16 @@ class HDNN(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(32, nb_classes),
         )
+        # self.initialize_weights()
+
+    def initialize_weights(self):
+        for param in self.parameters():
+            nn.init.normal_(param, mean=0, std=0.1)
+
+
+    def finetune(self):
+        for param in self.backbone.parameters():
+            param.requires_grad = False
 
 
     def forward(self, x: torch.Tensor, return_score=False) -> torch.Tensor:
