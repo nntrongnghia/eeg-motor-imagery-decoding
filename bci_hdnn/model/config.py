@@ -19,10 +19,10 @@ def hdnn_base_config():
 
     # Datamodule config
     cfg.batch_size = 32
-    cfg.train_ratio = 0.8
+    cfg.train_ratio = 0.9
 
     # Data augmentation
-    cfg.temporal_size = int(3*250)
+    cfg.temporal_size = int(3.5*250)
     cfg.noise_srn = 50
     cfg.train_transform = T.eeg_augmentation(cfg.temporal_size, cfg.noise_srn)
     cfg.test_transform = T.TemporalCrop(cfg.temporal_size)

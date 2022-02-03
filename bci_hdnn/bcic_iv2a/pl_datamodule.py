@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import List, Optional, Tuple
+from matplotlib.pyplot import get
 
 import numpy as np
 import pytorch_lightning as pl
@@ -89,14 +90,20 @@ class IV2aDataModule(pl.LightningDataModule):
             self._has_setup_test = True
 
     def train_dataloader(self):
+        if getattr(self, "trainset", None) is None:
+            raise ValueError("You should run `self.setup(stage='fit')`")
         return DataLoader(self.trainset, batch_size=self.batch_size,
                           shuffle=self.shuffle, num_workers=self.num_workers)
 
     def val_dataloader(self):
+        if getattr(self, "valset", None) is None:
+            raise ValueError("You should run `self.setup(stage='fit')`")
         return DataLoader(self.valset, batch_size=self.batch_size,
                           shuffle=self.shuffle, num_workers=self.num_workers)
 
     def test_dataloader(self):
+        if getattr(self, "testset", None) is None:
+            raise ValueError("You should run `self.setup(stage='test')`")
         return DataLoader(self.testset, batch_size=self.batch_size,
                           shuffle=self.shuffle, num_workers=self.num_workers)
 

@@ -50,12 +50,11 @@ def main(args):
             dirpath=tb_logger.log_dir)
     ]
 
-    datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)
+    datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)    
     datamodule_pretrain.setup(stage="fit")
-    
+
     trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
     trainer.fit(lit_model, datamodule=datamodule_pretrain)
-    
     del datamodule_pretrain # clean after use
 
     # =====================
@@ -79,20 +78,21 @@ def main(args):
             dirpath=tb_logger.log_dir)
     ]
 
-    datamodule_fintune = IV2aDataModule(args.data_dir, include_subject=[args.subject], **config)
-    datamodule_fintune.setup(stage="fit")
-    
+    datamodule_finetune = IV2aDataModule(args.data_dir, include_subject=[args.subject], **config)
+    datamodule_finetune.setup(stage="fit")
+
     trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
-    trainer.fit(lit_model, datamodule=datamodule_fintune)
+    trainer.fit(lit_model, datamodule=datamodule_finetune)
 
     # =====================
     # ==== Test ===========
     # =====================
+    logging.info(f"Load checkpoint: {finetune_ckpt_path}")
     lit_model.load_from_checkpoint(finetune_ckpt_path, 
         model_class=config.model_class, 
         model_kwargs=config.model_kwargs)
-    datamodule_fintune.setup(stage="test")
-    trainer.test(lit_model, datamodule=datamodule_fintune)
+    datamodule_finetune.setup(stage="test")
+    trainer.test(lit_model, datamodule=datamodule_finetune)
 
 if __name__ == "__main__":
     
