@@ -19,8 +19,9 @@ def hdnn_base_config():
     M = 2*cfg.m_filters*cfg.nb_classes
 
     # Datamodule config
+    cfg.num_workers = 3
     cfg.batch_size = 32
-    cfg.train_ratio = 0.9
+    cfg.train_ratio = 1.0
 
     # Data augmentation
     cfg.temporal_size = int(3.5*250)
@@ -43,7 +44,6 @@ def hdnn_base_config():
 
     # LightningModule config
     cfg.lr = 0.001
-
 
     return cfg
 

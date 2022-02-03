@@ -52,9 +52,13 @@ def main(args):
 
     datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)    
     datamodule_pretrain.setup(stage="fit")
+    datamodule_pretrain.setup(stage="test")
 
     trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
-    trainer.fit(lit_model, datamodule=datamodule_pretrain)
+    # trainer.fit(lit_model, datamodule=datamodule_pretrain)
+    trainer.fit(lit_model, 
+        datamodule_pretrain.train_dataloader(), 
+        datamodule_pretrain.test_dataloader())
     del datamodule_pretrain # clean after use
 
     # =====================
@@ -80,9 +84,13 @@ def main(args):
 
     datamodule_finetune = IV2aDataModule(args.data_dir, include_subject=[args.subject], **config)
     datamodule_finetune.setup(stage="fit")
+    datamodule_finetune.setup(stage="test")
 
     trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
-    trainer.fit(lit_model, datamodule=datamodule_finetune)
+    # trainer.fit(lit_model, datamodule=datamodule_finetune)
+    trainer.fit(lit_model, 
+        datamodule_finetune.train_dataloader(),
+        datamodule_finetune.test_dataloader())
 
     # =====================
     # ==== Test ===========

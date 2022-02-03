@@ -10,29 +10,12 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from sklearn.model_selection import StratifiedShuffleSplit    
 
 
-def split_train_val(dataset:IV2aDataset, train_ratio=0.8) -> Tuple[IV2aDataset]:
-    spliter = StratifiedShuffleSplit(1, train_size=train_ratio)
-    y = dataset.y + dataset.s*10
-    train_idx, val_idx = next(spliter.split(dataset.x, y))
-    val_dataset = deepcopy(dataset)
-    train_dataset = dataset
-
-    val_dataset.x = val_dataset.x[val_idx]
-    val_dataset.y = val_dataset.y[val_idx]
-    val_dataset.s = val_dataset.s[val_idx]
-
-    train_dataset.x = train_dataset.x[train_idx]
-    train_dataset.y = train_dataset.y[train_idx]
-    train_dataset.s = train_dataset.s[train_idx]
-    
-    return train_dataset, val_dataset
-
-
 class IV2aDataModule(pl.LightningDataModule):
     def __init__(self, data_dir, batch_size=32, train_ratio=0.8, nb_segments=4, nb_bands=9,
                  m_filters=2, include_subject: List[str] = [], exclude_subject: List[str] = [],
                  tmin=0.0, tmax=4.0, time_window=None,
-                 train_transform=None, test_transform=None, **kwargs):
+                 train_transform=None, test_transform=None, 
+                 num_workers=2, **kwargs):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -48,8 +31,29 @@ class IV2aDataModule(pl.LightningDataModule):
         self.time_window = time_window
         self.preprocessors = None
         self.shuffle = True
-        self.num_workers = 2
+        self.num_workers = num_workers
         self.dims = None
+
+    def split_train_val(self, dataset:IV2aDataset, train_ratio=0.8) -> Tuple[IV2aDataset]:
+        if train_ratio == 1.0:
+            return dataset, None
+        spliter = StratifiedShuffleSplit(1, train_size=train_ratio)
+        y = dataset.y + dataset.s*10
+        train_idx, val_idx = next(spliter.split(dataset.x, y))
+        val_dataset = deepcopy(dataset)
+        train_dataset = dataset
+
+        val_dataset.x = val_dataset.x[val_idx]
+        val_dataset.y = val_dataset.y[val_idx]
+        val_dataset.s = val_dataset.s[val_idx]
+        val_dataset.transform = self.test_transforms
+
+        train_dataset.x = train_dataset.x[train_idx]
+        train_dataset.y = train_dataset.y[train_idx]
+        train_dataset.s = train_dataset.s[train_idx]
+
+        return train_dataset, val_dataset
+
 
     def setup(self, stage: Optional[str] = None):
         """Setup DataModule
@@ -72,8 +76,7 @@ class IV2aDataModule(pl.LightningDataModule):
             dataset.setup()
             self.preprocessors = deepcopy(dataset.preprocessors)
             self.dims = deepcopy(dataset.dims)
-            self.trainset, self.valset = split_train_val(dataset, self.train_ratio)
-            self.valset.transform = self.test_transforms
+            self.trainset, self.valset = self.split_train_val(dataset, self.train_ratio)
             self._has_setup_fit = True
 
         if stage in (None, "test"):
