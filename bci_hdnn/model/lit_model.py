@@ -22,7 +22,7 @@ class LitModel(pl.LightningModule):
         self.model_kwargs = model_kwargs
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
-        self.criterion = nn.CrossEntropyLoss(torch.tensor([1, 3, 3, 1], dtype=torch.float32))
+        self.criterion = nn.CrossEntropyLoss(torch.tensor([1, 8, 3, 1], dtype=torch.float32))
 
         # Train metrics
         self.train_kappa = CohenKappa(nb_classes)
@@ -60,7 +60,7 @@ class LitModel(pl.LightningModule):
         if len(dataset) > 512:
             sample_idx = np.random.randint(0, len(dataset), 512)
         else:
-            sample_idx = list(range(512))
+            sample_idx = list(range(len(dataset)))
         
         xfb = []
         y = []

@@ -19,7 +19,9 @@ class IV2aDataModule(pl.LightningDataModule):
                  exclude_subject: List[str] = [],
                  tmin=0.0, tmax=4.0,
                  train_transform=None, test_transform=None,
-                 num_workers=2, batch_size=32, train_ratio=0.8, **kwargs):
+                 num_workers=2, batch_size=32, train_ratio=0.8, 
+                 overwrite_sample=False,
+                 **kwargs):
         super().__init__()
         self.dataset_kwargs = {
             "data_dir": data_dir,
@@ -33,6 +35,7 @@ class IV2aDataModule(pl.LightningDataModule):
             "exclude_subject": exclude_subject,
             "tmin": tmin,
             "tmax": tmax,
+            "overwrite_sample": overwrite_sample
         }
         self.batch_size = batch_size
         self.train_ratio = train_ratio

@@ -23,7 +23,7 @@ class IV2aDataset(Dataset):
                  include_subject: List[str] = [], 
                  exclude_subject: List[str] = [],
                  tmin=0.0, tmax=4.0, transform=None,
-                 sample_dir="sample", overwrite_pkl=False, **kwargs) -> None:
+                 sample_dir="sample", overwrite_sample=False, **kwargs) -> None:
         super().__init__()
         self.filter = FilterBank(self.FS, nb_bands, f_width, f_min, f_max, f_trans, gpass, gstop)
         self.tmin, self.tmax = tmin, tmax
@@ -32,7 +32,7 @@ class IV2aDataset(Dataset):
         self.exclude_subjects = exclude_subject
         self.datareader = BCIC_IV2a(data_dir)
         self.transform = transform
-        self.overwrite_pkl = overwrite_pkl
+        self.overwrite_sample = overwrite_sample
         self.sample_filenames = None # initialized by self.setup
 
         self.sample_dir = os.path.join(data_dir, sample_dir)
@@ -86,7 +86,7 @@ class IV2aDataset(Dataset):
                 filename = f"A0{subject}{suffix}_{i+1:03}.npz"
                 filenames.append(filename)
                 filepath = os.path.join(self.sample_dir, filename)
-                if not os.path.isfile(filepath) or self.overwrite_pkl:
+                if not os.path.isfile(filepath) or self.overwrite_sample:
                     logging.info(f"Saving {filepath}")
                     np.savez(filepath, x=x[i], y=y[i])
             return filenames

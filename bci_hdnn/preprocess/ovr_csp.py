@@ -1,3 +1,4 @@
+from math import sqrt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -79,6 +80,7 @@ class OVR_CSP(nn.Module):
             with M = 2*m*nb_classes
         """
         assert self.WT is not None, "You should call self.fit first"
+        xfb = xfb/sqrt(xfb.shape[-1]) # normalize by time length
         Z = self.WT @ xfb # (..., M, T)
         ZT = Z.moveaxis(-2, -1) # (..., T, M)
         ZZt = Z @ ZT # (..., M, M)
