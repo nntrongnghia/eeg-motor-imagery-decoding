@@ -44,7 +44,7 @@ def main(args):
     pretrain_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
 
     callbacks = [
-        EarlyStopping(monitor="val_kappa", mode="max", patience=20),
+        EarlyStopping(monitor="val_loss", mode="min", patience=20),
         ModelCheckpoint(monitor="val_kappa", mode="max",
             filename=ckpt_name,
             dirpath=tb_logger.log_dir)

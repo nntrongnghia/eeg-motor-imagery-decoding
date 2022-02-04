@@ -72,7 +72,8 @@ class LitModel(pl.LightningModule):
         xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy()
         y = torch.stack(y).cpu().numpy()
         self.model.initialize_csp(xfb, y)
-        self.model.ovr_csp.WT = self.model.ovr_csp.WT.cuda()
+        if on_gpu:
+            self.model.ovr_csp.WT = self.model.ovr_csp.WT.cuda()
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=0)
