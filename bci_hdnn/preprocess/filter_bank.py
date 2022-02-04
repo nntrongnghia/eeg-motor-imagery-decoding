@@ -90,6 +90,27 @@ class FilterBank(nn.Module):
         x = x.unsqueeze(-2).repeat_interleave(self.B, -2)
         return lfilter(x, self.a_coeffs, self.b_coeffs, clamp=False)
 
+    def np_forward(self, x: np.ndarray)-> np.ndarray:
+        """Filter data by Filter Bank
+
+        Parameters
+        ----------
+        eeg_data : np.ndarray
+            EEG signals, shape (..., T)
+            T discrete time
+
+        Returns
+        -------
+        np.ndarray
+            Filtered signals, shape (..., B, T)
+            B number of filter bands
+        """
+        xfb = []
+        a_coeffs = self.a_coeffs.numpy()
+        b_coeffs = self.b_coeffs.numpy()
+        for a, b in zip(a_coeffs, b_coeffs):
+            xfb.append(signal.lfilter(b, a, x))
+        return np.stack(xfb, -2)
 
 # test code 
 if __name__ == "__main__":

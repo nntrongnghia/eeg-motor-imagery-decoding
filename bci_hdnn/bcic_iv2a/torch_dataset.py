@@ -134,7 +134,10 @@ class IV2aDataset(Dataset):
         if self.transform is not None:
             x = self.transform(x)
         
-        xfb = self.filter(torch.tensor(x)).moveaxis(-2, -3) # (B, C, T)
+        # xfb = self.filter(torch.tensor(x)).moveaxis(-2, -3) # (B, C, T)
+        xfb = self.filter.np_forward(x) # (C, B, T)
+        xfb = np.moveaxis(xfb, 1, 0)
+        xfb = torch.tensor(xfb)
 
         sample = {
             "y": y,

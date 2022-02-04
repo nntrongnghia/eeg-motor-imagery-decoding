@@ -56,12 +56,22 @@ def main(args):
     
     lit_model.initialize_csp(datamodule_pretrain.train_dataloader(), on_gpu=args.gpus is not None)
     
-    trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
+    if args.profiler is not None:
+        max_epochs = 2
+    else:
+        max_epochs = None
+    trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks, max_epochs=max_epochs)
     # trainer.fit(lit_model, datamodule=datamodule_pretrain)
+
+
+
     trainer.fit(lit_model, 
         datamodule_pretrain.train_dataloader(), 
         datamodule_pretrain.test_dataloader())
     del datamodule_pretrain # clean after use
+
+    if args.profiler is not None:
+        return
 
     # =====================
     # ==== Finetune =======
