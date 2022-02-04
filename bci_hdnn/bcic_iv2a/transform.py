@@ -9,7 +9,7 @@ class ToTensor(object):
 
     def __call__(self, sample: Dict[str, np.ndarray]):
         tensors = {
-            key: torch.from_numpy(values)
+            key: torch.tensor(values)
             for key, values in sample.items()
         }
         return tensors
@@ -104,6 +104,6 @@ class GaussianNoise(object):
      
 def eeg_augmentation(temporal_size:int, noise_srn=50,**kwargs):
     return T.Compose([
-        # TemporalRandomCrop(temporal_size),
+        TemporalRandomCrop(temporal_size),
         GaussianNoise(noise_srn)
     ])

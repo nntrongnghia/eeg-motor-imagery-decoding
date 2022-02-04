@@ -5,7 +5,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from ml_collections import ConfigDict
+from bci_hdnn.preprocess import FilterBank, OVR_CSP
 
+def split_n_segments(x:torch.Tensor, nb_segments:int=4) -> torch.Tensor:
+    # Split to n sequences/segments using zero padding if needed
+    pad_width = nb_segments - x.shape[-1] % nb_segments
+    pad_before = pad_width // 2
+    pad_after = pad_width - pad_before
+    x = F.pad(x, (pad_before, pad_after))
+    x = x.split(x.shape[-1]//nb_segments, -1) # list of (..., T/nb_segments)
+    x = torch.stack(x) # (L, ..., seglen)
+    return x
 
 class Backbone(nn.Module):
     def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
@@ -89,12 +99,16 @@ class Backbone(nn.Module):
         return combined_ft.reshape(BS, -1)
 
 
+
 class HDNN(nn.Module):
-    def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
+    def __init__(self, input_dims: Tuple, nb_segments=4,
+                 m_filters=2, cnn1_out_channels=4, 
                  lstm_hidden_size=64, lstm_output_size=32,
                  lstm_input_size=32, lstm_num_layers=3,
                  p_dropout=0.2, head_hidden_dim=512, nb_classes=4, **kwargs) -> None:
         super().__init__()
+        self.nb_segments = nb_segments
+        self.ovr_csp = OVR_CSP(nb_classes, m_filters)
         self.backbone = Backbone(input_dims, cnn1_out_channels,
                                  lstm_hidden_size, lstm_output_size,
                                  lstm_input_size, lstm_num_layers, p_dropout)
@@ -111,32 +125,43 @@ class HDNN(nn.Module):
         )
         # self.initialize_weights()
 
-    def initialize_weights(self):
-        for param in self.parameters():
-            nn.init.normal_(param, mean=0, std=0.1)
+    @torch.no_grad()
+    def initialize_csp(self, xfb:np.ndarray, y:np.ndarray):
+        """Initialize CSP transformation matrix
 
+        Parameters
+        ----------
+        x : np.ndarray
+            Filtered EEG signals, shape (B, N, C, T)
+            B filter bands, N trials, C channels, T time
+        y : np.ndarray
+            labels, shape (N,)
+        """
+        self.ovr_csp.fit(xfb, y)
 
     def finetune(self):
         for param in self.backbone.parameters():
             param.requires_grad = False
 
 
-    def forward(self, x: torch.Tensor, return_score=False) -> torch.Tensor:
+    def forward(self, xfb: torch.Tensor, return_score=False) -> torch.Tensor:
         """HDNN forward
 
         Parameters
         ----------
         x : torch.Tensor
-            EEG features from OVR-FBCSP
-            shape (bs, L, 1, B, M)
+            Filtered EEG signals, shape (N, B, C, T)
+            N trials, B filter bands, C channels, T time
 
         Returns
         -------
         torch.Tensor
             classification softmax scores
-            shape (bs, nb_classes)
+            shape (N, nb_classes)
         """
-        x = self.backbone(x)
+        xfbs = split_n_segments(xfb, self.nb_segments).moveaxis(0, 1) # (N, L, B, C, T)
+        csp_ft = self.ovr_csp(xfbs)
+        x = self.backbone(csp_ft.unsqueeze(-3))
         logits = self.head(x)
         if return_score:
             return torch.softmax(logits, dim=-1)

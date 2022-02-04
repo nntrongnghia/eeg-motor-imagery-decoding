@@ -50,9 +50,12 @@ def main(args):
             dirpath=tb_logger.log_dir)
     ]
 
-    datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)    
+    # datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)    
+    datamodule_pretrain = IV2aDataModule(args.data_dir, include_subject=[args.subject], **config)    
     datamodule_pretrain.setup(stage="fit")
     datamodule_pretrain.setup(stage="test")
+
+    lit_model.initialize_csp(datamodule_pretrain.train_dataloader())
 
     trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
     # trainer.fit(lit_model, datamodule=datamodule_pretrain)

@@ -37,6 +37,7 @@ class CSP:
             - eig_values: eigen values, shape (C,)
             - u_mat: eigen vectors in columns, shape (C, C)
         """
+        y_labels = y_labels.reshape(-1, )
         classes = np.unique(y_labels)
         assert len(classes) == 2, "y_train should contain only 2 classes"
         n_samples = x_data.shape[-1]

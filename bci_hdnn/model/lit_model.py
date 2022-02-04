@@ -6,6 +6,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import seaborn as sns
 import torch
+from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
 from bci_hdnn.model import HDNN
@@ -36,7 +37,33 @@ class LitModel(pl.LightningModule):
         self.test_accuracy = Accuracy()
         self.test_confusion = ConfusionMatrix(nb_classes)
         
+    @torch.no_grad()
+    def initialize_csp(self, train_dataloader: DataLoader):
+        """Initialize CSP transformation matrix
 
+        Parameters
+        ----------
+        train_dataloader: DataLoader
+            Generate xfb, y, in which
+            x : np.ndarray
+                Filtered EEG signals, shape (Bs, L, B, C, T)
+                B filter bands, L segments, C channels, T time
+            y : np.ndarray
+                labels, shape (N,)
+        """
+        B, C, T = next(iter(train_dataloader))["xfb"].shape[-3:]
+        xfb = []
+        y = []
+        for sample in train_dataloader:
+            xfb.append(sample["xfb"])
+            y.append(sample["y"])
+        xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy()
+        y = torch.cat(y).cpu().numpy()
+        if xfb.shape[1] > 300:
+            subsample_idx = np.random.randint(0, xfb.shape[1], 300)
+            xfb = xfb[:, subsample_idx]
+            y = y[subsample_idx]
+        self.model.initialize_csp(xfb, y)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=0)
@@ -50,7 +77,7 @@ class LitModel(pl.LightningModule):
 
 
     def training_step(self, batch, batch_idx):
-        x, y = batch["ovr-fbcsp"], batch["y"].reshape(-1,)
+        x, y = batch["xfb"], batch["y"].reshape(-1,)
         # inference
         logits = self(x)
         pred_scores = torch.softmax(logits, -1)
@@ -65,7 +92,7 @@ class LitModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch["ovr-fbcsp"], batch["y"].reshape(-1,)
+        x, y = batch["xfb"], batch["y"].reshape(-1,)
         # inference
         logits = self(x)
         pred_scores = torch.softmax(logits, -1)
@@ -80,7 +107,7 @@ class LitModel(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        x, y = batch["ovr-fbcsp"], batch["y"].reshape(-1,)
+        x, y = batch["xfb"], batch["y"].reshape(-1,)
         # inference
         logits = self(x)
         pred_scores = torch.softmax(logits, -1)
