@@ -126,7 +126,7 @@ class HDNN(nn.Module):
         # self.initialize_weights()
 
     @torch.no_grad()
-    def initialize_csp(self, xfb:np.ndarray, y:np.ndarray):
+    def initialize_csp(self, xfb:np.ndarray, y:np.ndarray, on_gpu=False):
         """Initialize CSP transformation matrix
 
         Parameters

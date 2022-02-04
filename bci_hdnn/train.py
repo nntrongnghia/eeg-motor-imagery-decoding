@@ -53,9 +53,9 @@ def main(args):
     datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)    
     datamodule_pretrain.setup(stage="fit")
     datamodule_pretrain.setup(stage="test")
-
-    lit_model.initialize_csp(datamodule_pretrain.train_dataloader())
-
+    
+    lit_model.initialize_csp(datamodule_pretrain.train_dataloader(), on_gpu=args.gpus is not None)
+    
     trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
     # trainer.fit(lit_model, datamodule=datamodule_pretrain)
     trainer.fit(lit_model, 
@@ -69,7 +69,7 @@ def main(args):
     lit_model.load_from_checkpoint(pretrain_ckpt_path, 
         model_class=config.model_class, 
         model_kwargs=config.model_kwargs)
-    lit_model.finetune()
+    # lit_model.finetune()
 
     tb_logger = TensorBoardLogger("lightning_logs", name=expe_name, 
         version=f"finetune_{args.subject}")
