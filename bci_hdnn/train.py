@@ -50,8 +50,7 @@ def main(args):
             dirpath=tb_logger.log_dir)
     ]
 
-    # datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)    
-    datamodule_pretrain = IV2aDataModule(args.data_dir, include_subject=[args.subject], **config)    
+    datamodule_pretrain = IV2aDataModule(args.data_dir, exclude_subject=[args.subject], **config)    
     datamodule_pretrain.setup(stage="fit")
     datamodule_pretrain.setup(stage="test")
 

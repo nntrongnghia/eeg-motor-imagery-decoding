@@ -44,22 +44,24 @@ class IV2aDataModule(pl.LightningDataModule):
     def split_train_val(self, dataset: IV2aDataset, train_ratio=0.8) -> Tuple[IV2aDataset]:
         if train_ratio == 1.0:
             return dataset, None
-        spliter = StratifiedShuffleSplit(1, train_size=train_ratio)
-        y = dataset.y + dataset.s*10
-        train_idx, val_idx = next(spliter.split(dataset.x, y))
-        val_dataset = deepcopy(dataset)
-        train_dataset = dataset
+        else:
+            raise NotImplementedError
+        # spliter = StratifiedShuffleSplit(1, train_size=train_ratio)
+        # y = dataset.y + dataset.s*10
+        # train_idx, val_idx = next(spliter.split(dataset.x, y))
+        # val_dataset = deepcopy(dataset)
+        # train_dataset = dataset
 
-        val_dataset.x = val_dataset.x[val_idx]
-        val_dataset.y = val_dataset.y[val_idx]
-        val_dataset.s = val_dataset.s[val_idx]
-        val_dataset.transform = self.test_transform
+        # val_dataset.x = val_dataset.x[val_idx]
+        # val_dataset.y = val_dataset.y[val_idx]
+        # val_dataset.s = val_dataset.s[val_idx]
+        # val_dataset.transform = self.test_transform
 
-        train_dataset.x = train_dataset.x[train_idx]
-        train_dataset.y = train_dataset.y[train_idx]
-        train_dataset.s = train_dataset.s[train_idx]
+        # train_dataset.x = train_dataset.x[train_idx]
+        # train_dataset.y = train_dataset.y[train_idx]
+        # train_dataset.s = train_dataset.s[train_idx]
 
-        return train_dataset, val_dataset
+        # return train_dataset, val_dataset
 
     def setup(self, stage: Optional[str] = None):
         """Setup DataModule

@@ -96,16 +96,18 @@ class IV2aDataset(Dataset):
         self.sample_filenames = []
         if self.train:
             filenames = [name for name in self.datareader.filenames if "T" in name]
+            suffix = "T"
         else:
             filenames = [name for name in self.datareader.filenames if "E" in name]
+            suffix = "E"
         for name in filenames:
             subject = int(name[1:3])
             if subject not in self.subject_list:
                 continue
             # check if sample files exist
             filenames = os.listdir(self.sample_dir)
-            subject = f"A0{subject}"
-            subject_samples = [name for name in filenames if name.startswith(subject)]
+            prefix = f"A0{subject}{suffix}"
+            subject_samples = [name for name in filenames if name.startswith(prefix)]
             if len(subject_samples) < self.NB_SAMPLES_PER_SUBJECT:
                 subject_data = self.datareader.read_file(name, self.tmin, self.tmax)
                 self.sample_filenames += _save_subject_data(subject_data, subject)

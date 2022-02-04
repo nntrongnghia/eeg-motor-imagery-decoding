@@ -1,4 +1,5 @@
 from inspect import CO_ASYNC_GENERATOR
+from random import sample
 from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,7 +22,8 @@ class LitModel(pl.LightningModule):
         self.model_kwargs = model_kwargs
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
-        
+        self.criterion = nn.CrossEntropyLoss(torch.tensor([1, 3, 3, 1], dtype=torch.float32))
+
         # Train metrics
         self.train_kappa = CohenKappa(nb_classes)
         self.train_accuracy = Accuracy()
@@ -37,6 +39,7 @@ class LitModel(pl.LightningModule):
         self.test_accuracy = Accuracy()
         self.test_confusion = ConfusionMatrix(nb_classes)
         
+    
     @torch.no_grad()
     def initialize_csp(self, train_dataloader: DataLoader):
         """Initialize CSP transformation matrix
@@ -46,23 +49,28 @@ class LitModel(pl.LightningModule):
         train_dataloader: DataLoader
             Generate xfb, y, in which
             x : np.ndarray
-                Filtered EEG signals, shape (Bs, L, B, C, T)
+                Filtered EEG signals, shape (Bs, B, C, T)
                 B filter bands, L segments, C channels, T time
             y : np.ndarray
                 labels, shape (N,)
         """
-        B, C, T = next(iter(train_dataloader))["xfb"].shape[-3:]
+        dataset = train_dataloader.dataset
+        B, C, T = dataset[0]["xfb"].shape
+
+        if len(dataset) > 512:
+            sample_idx = np.random.randint(0, len(dataset), 512)
+        else:
+            sample_idx = list(range(512))
+        
         xfb = []
         y = []
-        for sample in train_dataloader:
+        for idx in sample_idx:
+            sample = dataset[idx]
             xfb.append(sample["xfb"])
             y.append(sample["y"])
+        
         xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy()
-        y = torch.cat(y).cpu().numpy()
-        if xfb.shape[1] > 300:
-            subsample_idx = np.random.randint(0, xfb.shape[1], 300)
-            xfb = xfb[:, subsample_idx]
-            y = y[subsample_idx]
+        y = torch.stack(y).cpu().numpy()
         self.model.initialize_csp(xfb, y)
 
     def configure_optimizers(self):
@@ -83,7 +91,7 @@ class LitModel(pl.LightningModule):
         pred_scores = torch.softmax(logits, -1)
         ypred = torch.argmax(pred_scores, -1)
         # loss
-        loss = F.cross_entropy(logits, y)
+        loss = self.criterion(logits, y)
         self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.train_kappa(ypred, y)
@@ -98,7 +106,7 @@ class LitModel(pl.LightningModule):
         pred_scores = torch.softmax(logits, -1)
         ypred = torch.argmax(pred_scores, -1)
         # loss
-        loss = F.cross_entropy(logits, y)
+        loss = self.criterion(logits, y)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.val_kappa(ypred, y)
@@ -113,7 +121,7 @@ class LitModel(pl.LightningModule):
         pred_scores = torch.softmax(logits, -1)
         ypred = torch.argmax(pred_scores, -1)
         # loss
-        loss = F.cross_entropy(logits, y)
+        loss = self.criterion(logits, y)
         self.log("test_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.test_kappa(ypred, y)
