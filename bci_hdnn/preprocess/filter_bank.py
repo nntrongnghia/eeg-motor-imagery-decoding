@@ -8,7 +8,7 @@ from torchaudio.functional import lfilter
 
 
 class FilterBank(nn.Module):
-    def __init__(self, fs, nb_bands=9, f_width=4, f_min=4, f_max=40,
+    def __init__(self, fs, nb_bands=9, f_width=4, f_min=4, f_max=40, f_trans=2,
                  gpass=3.0, gstop=30.0
                  ):
         """Filter Bank class. __call__ method will apply 
@@ -31,7 +31,7 @@ class FilterBank(nn.Module):
         self.f_min = f_min
         self.f_max = f_max
         self.f_width = f_width
-        self.f_trans = 2  # transition width in Hz
+        self.f_trans = f_trans  # transition width in Hz
         self.f_pass = np.linspace(f_min, f_max, nb_bands, endpoint=False)
         # self.f_pass = np.arange(f_min, f_max, f_width)
         self.gpass = gpass

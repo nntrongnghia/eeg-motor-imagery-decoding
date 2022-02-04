@@ -23,7 +23,6 @@ class IV2aDataModule(pl.LightningDataModule):
         super().__init__()
         self.dataset_kwargs = {
             "data_dir": data_dir,
-            "nb_segments": nb_segments,
             "nb_bands": nb_bands,
             "f_width": f_width,
             "f_min": f_min,
