@@ -15,14 +15,16 @@ from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
 
 
 class LitModel(pl.LightningModule):
-    def __init__(self, model_class: nn.Module=None, model_kwargs={}, nb_classes=4, lr=0.001, **kwargs) -> None:
+    def __init__(self, model_class: nn.Module = None, model_kwargs={}, nb_classes=4, lr=0.001, **kwargs) -> None:
         super().__init__()
+        self.save_hyperparameters()
         self.lr = lr
         self.model_class = model_class
         self.model_kwargs = model_kwargs
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
-        self.criterion = nn.CrossEntropyLoss(torch.tensor([1, 8, 3, 1], dtype=torch.float32))
+        self.criterion = nn.CrossEntropyLoss(
+            torch.tensor([1, 8, 3, 1], dtype=torch.float32))
 
         # Train metrics
         self.train_kappa = CohenKappa(nb_classes)
@@ -38,8 +40,7 @@ class LitModel(pl.LightningModule):
         self.test_kappa = CohenKappa(nb_classes)
         self.test_accuracy = Accuracy()
         self.test_confusion = ConfusionMatrix(nb_classes)
-        
-    
+
     @torch.no_grad()
     def initialize_csp(self, train_dataloader: DataLoader):
         """Initialize CSP transformation matrix
@@ -61,14 +62,14 @@ class LitModel(pl.LightningModule):
             sample_idx = np.random.randint(0, len(dataset), 512)
         else:
             sample_idx = list(range(len(dataset)))
-        
+
         xfb = []
         y = []
         for idx in sample_idx:
             sample = dataset[idx]
             xfb.append(sample["xfb"])
             y.append(sample["y"])
-        
+
         xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy()
         y = torch.stack(y).cpu().numpy()
         self.model.initialize_csp(xfb, y)
@@ -76,13 +77,12 @@ class LitModel(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
         # return torch.optim.SGD(self.parameters(), lr=0.01, momentum=0.9)
-    
+
     def finetune(self):
         self.model.finetune()
 
     def forward(self, x):
         return self.model(x)
-
 
     def training_step(self, batch, batch_idx):
         x, y = batch["xfb"], batch["y"].reshape(-1,)
@@ -92,7 +92,8 @@ class LitModel(pl.LightningModule):
         ypred = torch.argmax(pred_scores, -1)
         # loss
         loss = self.criterion(logits, y)
-        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", loss, on_step=False,
+                 on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.train_kappa(ypred, y)
         self.train_accuracy(ypred, y)
@@ -132,30 +133,23 @@ class LitModel(pl.LightningModule):
     def log_confusion_matrix(self, confusion_matrix_metric: ConfusionMatrix):
         confusion_matrix = confusion_matrix_metric.compute().cpu().numpy()
         df_cm = pd.DataFrame(
-            confusion_matrix, 
-            index=range(self.nb_classes), 
+            confusion_matrix,
+            index=range(self.nb_classes),
             columns=range(self.nb_classes))
-        plt.figure(figsize = (10,7))
+        plt.figure(figsize=(10, 7))
         fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
         plt.xlabel("Predictions")
         plt.ylabel("Targets")
         plt.close(fig_)
-        self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
-        
+        self.logger.experiment.add_figure(
+            "Confusion matrix", fig_, self.current_epoch)
+
         plt.figure().clear()
         plt.close()
         plt.cla()
         plt.clf()
         del fig_
         del df_cm
-
-    def validation_epoch_end(self, outputs):
-        # self.log_confusion_matrix(self.val_confusion)
-        self.log("val_kappa", self.val_kappa.compute())
-        self.log("val_accuracy", self.val_accuracy.compute())
-        self.val_kappa.reset()
-        self.val_accuracy.reset()
-        # self.val_confusion.reset()
 
     def training_epoch_end(self, outputs) -> None:
         # self.log_confusion_matrix(self.train_confusion)
@@ -165,6 +159,13 @@ class LitModel(pl.LightningModule):
         self.train_accuracy.reset()
         # self.train_confusion.reset()
 
+    def validation_epoch_end(self, outputs):
+        # self.log_confusion_matrix(self.val_confusion)
+        self.log("val_kappa", self.val_kappa.compute())
+        self.log("val_accuracy", self.val_accuracy.compute())
+        self.val_kappa.reset()
+        self.val_accuracy.reset()
+        # self.val_confusion.reset()
 
     def test_epoch_end(self, outputs) -> None:
         self.log_confusion_matrix(self.test_confusion)
@@ -173,7 +174,3 @@ class LitModel(pl.LightningModule):
         self.test_kappa.reset()
         self.test_accuracy.reset()
         self.test_confusion.reset()
-    
-
-
-    

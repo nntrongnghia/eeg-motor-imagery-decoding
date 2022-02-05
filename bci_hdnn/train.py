@@ -1,15 +1,18 @@
-from bci_hdnn.model import LitModel
-from bci_hdnn.bcic_iv2a import IV2aDataModule
-import bci_hdnn.model.config as config_collection
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
 import argparse
 import logging
 import os
 from datetime import datetime
 
 import pytorch_lightning as pl
+import torch
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
+
+import bci_hdnn.model.config as config_collection
+from bci_hdnn.bcic_iv2a import IV2aDataModule
+from bci_hdnn.model import LitModel
+
 # for reproducibility
 pl.seed_everything(42, workers=True)
 
@@ -58,8 +61,8 @@ def main(args):
                 tb_logger.log_dir, ckpt_name+".ckpt")
 
             callbacks = [
-                EarlyStopping(monitor="val_loss", mode="min", patience=20),
-                ModelCheckpoint(monitor="val_kappa", mode="max",
+                EarlyStopping(monitor="val_loss", mode="min", patience=10),
+                ModelCheckpoint(monitor="val_loss", mode="min",
                                 filename=ckpt_name,
                                 dirpath=tb_logger.log_dir)
             ]
@@ -81,9 +84,7 @@ def main(args):
                         datamodule_pretrain.test_dataloader())
             del datamodule_pretrain  # clean after use
 
-            lit_model.load_from_checkpoint(pretrain_ckpt_path,
-                                           model_class=config.model_class,
-                                           model_kwargs=config.model_kwargs)
+            lit_model = lit_model.load_from_checkpoint(pretrain_ckpt_path)
 
         # =====================
         # ==== Finetune =======
@@ -101,8 +102,8 @@ def main(args):
             ModelCheckpoint(monitor="val_kappa", mode="max",
                             filename=ckpt_name,
                             dirpath=tb_logger.log_dir),
-            ModelCheckpoint(dirpath=tb_logger.log_dir,
-                            every_n_epochs=1, save_top_k=-1)
+            # ModelCheckpoint(dirpath=tb_logger.log_dir,
+            #                 every_n_epochs=1, save_top_k=-1)
         ]
 
         datamodule_finetune = IV2aDataModule(args.data_dir,
@@ -126,14 +127,13 @@ def main(args):
                                              overwrite_sample=args.overwrite_sample)
         trainer = pl.Trainer.from_argparse_args(args)
         finetune_ckpt_path = args.test_ckpt
-    
+
     # =====================
     # ==== Test ===========
     # =====================
     logging.info(f"Load checkpoint: {finetune_ckpt_path}")
-    lit_model.load_from_checkpoint(finetune_ckpt_path,
-                                   model_class=config.model_class,
-                                   model_kwargs=config.model_kwargs)
+    ckpt = torch.load(finetune_ckpt_path)
+    lit_model = lit_model.load_from_checkpoint(finetune_ckpt_path)
     datamodule_finetune.setup(stage="test")
     trainer.test(lit_model, datamodule_finetune.test_dataloader())
 
