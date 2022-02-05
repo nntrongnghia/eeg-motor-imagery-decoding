@@ -15,7 +15,10 @@ from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
 
 
 class LitModel(pl.LightningModule):
-    def __init__(self, model_class: nn.Module = None, model_kwargs={}, nb_classes=4, lr=0.001, **kwargs) -> None:
+    def __init__(self, model_class: nn.Module = None, 
+                model_kwargs={}, 
+                nb_classes=4, 
+                lr=0.001, **kwargs) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.lr = lr
@@ -76,8 +79,15 @@ class LitModel(pl.LightningModule):
         self.model.initialize_csp(xfb, y)
 
     def configure_optimizers(self):
-        # return torch.optim.Adam(self.parameters(), lr=self.lr)
-        return torch.optim.SGD(self.parameters(), lr=0.01, momentum=0.9)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        return optimizer
+        # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
+        # return {
+        #     "optimizer": optimizer,
+        #     "lr_scheduler": scheduler,
+        #     "inverval": "epoch",
+        #     "frequency": 1
+        # }
 
     def finetune(self):
         self.model.finetune()

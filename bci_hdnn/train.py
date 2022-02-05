@@ -99,7 +99,7 @@ def main(args):
         finetune_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
 
         callbacks = [
-            # EarlyStopping(monitor="val_kappa", mode="max", patience=50),
+            EarlyStopping(monitor="val_kappa", mode="max", patience=50),
             ModelCheckpoint(monitor="val_kappa", mode="max",
                             filename=ckpt_name,
                             dirpath=tb_logger.log_dir),

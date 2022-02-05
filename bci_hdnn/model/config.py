@@ -42,8 +42,9 @@ def hdnn_base_config():
         "head_hidden_dim": 128,
     }
 
-    # LightningModule config
+    # LightningModule optimizer config
     cfg.lr = 0.001
+
 
     # Trainer
     cfg.trainer_kwargs = {

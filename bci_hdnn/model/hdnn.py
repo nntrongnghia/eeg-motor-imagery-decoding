@@ -123,7 +123,11 @@ class HDNN(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(32, nb_classes),
         )
-        # self.initialize_weights()
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        for param in self.parameters():
+            nn.init.normal_(param, std=0.1)
 
     @torch.no_grad()
     def initialize_csp(self, xfb:np.ndarray, y:np.ndarray, on_gpu=False):
