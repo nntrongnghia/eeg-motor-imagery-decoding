@@ -90,7 +90,7 @@ class IV2aDataModule(pl.LightningDataModule):
 
         if stage in (None, "test"):
             self.testset = IV2aDataset(**self.dataset_kwargs,
-                                       train=False, transform=self.train_transform)
+                                       train=False, transform=self.test_transform)
             self.testset.setup()
             self._has_setup_test = True
 

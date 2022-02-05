@@ -22,7 +22,7 @@ def hdnn_base_config():
     cfg.train_ratio = 1.0
 
     # Data augmentation
-    cfg.temporal_size = int(3.5*250)
+    cfg.temporal_size = int(3.5*250) + 1
     cfg.noise_srn = 40
     cfg.train_transform = T.eeg_augmentation(cfg.temporal_size, cfg.noise_srn)
     cfg.test_transform = T.TemporalCrop(cfg.temporal_size, position="end")

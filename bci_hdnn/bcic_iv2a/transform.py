@@ -37,6 +37,8 @@ class TemporalRandomCrop(object):
         if T < self.size:
             raise ValueError("Time length shorter than crop length")
         margin = self.size//2 + 1
+        if T - margin <= margin:
+            return x
         center_index = random.randint(margin, T - margin)
         start = max(center_index - self.size//2, 0)
         end = start + self.size        
