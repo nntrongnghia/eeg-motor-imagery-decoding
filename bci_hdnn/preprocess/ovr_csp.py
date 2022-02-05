@@ -7,7 +7,7 @@ from bci_hdnn.preprocess.csp import CSP
 
 
 class OVR_CSP(nn.Module):
-    def __init__(self, nb_classes: int, m_filters=2, trainable=True):
+    def __init__(self, nb_classes: int, m_filters=2, trainable=True, nb_bands=16, nb_channels=22):
         """One Versus Rest - Common Spatial Pattern
 
         Parameters
@@ -23,13 +23,19 @@ class OVR_CSP(nn.Module):
         self.csps = None
         self.nb_classes = nb_classes
         self.m_filters = m_filters
-        # Transformation matrix (B, C, m*2*nb_classes)
-        # will be initialized by self.fit
-        self.W = None
+        self.nb_bands = nb_bands
+        self.nb_channels = nb_channels
+        
+        # Transformation matrix (B, M, C)
+        # with M = m_filters*2*nb_classes
         # Transposed W with expanded dims, ready to use in self.transform
-        self.WT = None
+        WT = torch.zeros(
+            (nb_bands, 2*m_filters*nb_classes, nb_channels), 
+            dtype=torch.float32)
+        torch.nn.init.normal_(WT, std=0.1)
+        self.WT = nn.parameter.Parameter(WT, requires_grad=trainable)
 
-
+    @torch.no_grad()
     def fit(self, x_fb: np.ndarray, y_labels: np.ndarray):
         """Find the transformation matrix for OVR-FBCSP 
         This matrix will be stored in self.W, with shape (B, C, m*2*nb_classes)
@@ -45,24 +51,26 @@ class OVR_CSP(nn.Module):
         """
         if isinstance(x_fb, torch.Tensor):
             x_fb = x_fb.detach().cpu().numpy()
-        B, N, C, T = x_fb.shape
-        self.csps = [[CSP(self.m_filters) for _ in range(self.nb_classes)] for _ in range(B)]
-        self.W = np.zeros((B, C, self.m_filters*2*self.nb_classes))
+        B = self.nb_bands
+        C = self.nb_channels
         classes = np.unique(y_labels)
+        assert B == x_fb.shape[0]
+        assert C == x_fb.shape[2]
         assert len(classes) == self.nb_classes, \
             f"y_labels should contain {self.nb_classes} classes"
+        self.csps = [[CSP(self.m_filters) for _ in range(self.nb_classes)] for _ in range(B)]
+        W = np.zeros((B, C, self.m_filters*2*self.nb_classes))
         # TODO: optimize code to remove for loops ?
         for b in range(B):
             x = x_fb[b]  # (N, C, T)
             for cls in classes:
                 y_ovr = (y_labels == cls).astype(np.int)
                 self.csps[b][cls].fit(x, y_ovr)
-            self.W[b] = np.concatenate([
-                csp.Wb for csp in self.csps[b]
-            ], axis=-1)
+            W[b] = np.concatenate([csp.Wb for csp in self.csps[b]], axis=-1)
 
-        self.WT = np.moveaxis(self.W, -2, -1) # (B, M, C)
-        self.WT = torch.tensor(self.WT, dtype=torch.float32, requires_grad=self.trainable)
+        WT = np.moveaxis(W, -2, -1) # (B, M, C)
+        WT = torch.tensor(WT, dtype=torch.float32)
+        self.WT.copy_(WT)
 
     def forward(self, xfb: torch.Tensor) -> torch.Tensor:
         """Feature extraction using OVR-FBCSP algorithm

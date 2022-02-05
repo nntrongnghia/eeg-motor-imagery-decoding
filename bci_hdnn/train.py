@@ -32,10 +32,16 @@ def main(args):
     if args.config is None:
         args.config = "hdnn_base_config"
     config = getattr(config_collection, args.config)()
+    expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(args.config, args.subject, datetime.now())
+
+    # save experiment config as yaml file
+    os.makedirs(os.path.join("lightning_logs", expe_name), exist_ok=True)
+    config_yaml_path = os.path.join("lightning_logs", expe_name, "config.yaml")
+    with open(config_yaml_path, "w") as f:
+        f.write(config.to_yaml())
 
     lit_model = LitModel(**config)
 
-    expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(args.config, args.subject, datetime.now())
 
     if args.test_ckpt is None:
         # =====================
@@ -61,7 +67,7 @@ def main(args):
             datamodule_pretrain.setup(stage="fit")
             datamodule_pretrain.setup(stage="test")
             
-            lit_model.initialize_csp(datamodule_pretrain.train_dataloader(), on_gpu=args.gpus is not None)
+            lit_model.initialize_csp(datamodule_pretrain.train_dataloader())
             
             if args.profiler is not None:
                 max_epochs = 2
@@ -99,8 +105,7 @@ def main(args):
             EarlyStopping(monitor="val_kappa", mode="max", patience=50),
             ModelCheckpoint(monitor="val_kappa", mode="max",
                 filename=ckpt_name,
-                dirpath=tb_logger.log_dir,
-                verbose=True)
+                dirpath=tb_logger.log_dir)
         ]
 
         datamodule_finetune = IV2aDataModule(args.data_dir, 
@@ -109,7 +114,7 @@ def main(args):
         datamodule_finetune.setup(stage="fit")
         datamodule_finetune.setup(stage="test")
 
-        lit_model.initialize_csp(datamodule_finetune.train_dataloader(), on_gpu=args.gpus is not None)
+        lit_model.initialize_csp(datamodule_finetune.train_dataloader())
 
         trainer = pl.Trainer.from_argparse_args(args, logger=tb_logger, callbacks=callbacks)
         # trainer.fit(lit_model, datamodule=datamodule_finetune)

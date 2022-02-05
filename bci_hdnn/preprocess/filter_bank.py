@@ -108,8 +108,9 @@ class FilterBank(nn.Module):
         xfb = []
         a_coeffs = self.a_coeffs.numpy()
         b_coeffs = self.b_coeffs.numpy()
-        for a, b in zip(a_coeffs, b_coeffs):
-            xfb.append(signal.lfilter(b, a, x))
+        xfb = [signal.lfilter(b, a, x) for a, b in zip(a_coeffs, b_coeffs)]
+        # for a, b in zip(a_coeffs, b_coeffs):
+        #     xfb.append(signal.lfilter(b, a, x))
         return np.stack(xfb, -2)
 
 # test code 

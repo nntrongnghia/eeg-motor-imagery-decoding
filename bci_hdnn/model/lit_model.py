@@ -41,7 +41,7 @@ class LitModel(pl.LightningModule):
         
     
     @torch.no_grad()
-    def initialize_csp(self, train_dataloader: DataLoader, on_gpu=False):
+    def initialize_csp(self, train_dataloader: DataLoader):
         """Initialize CSP transformation matrix
 
         Parameters
@@ -72,11 +72,9 @@ class LitModel(pl.LightningModule):
         xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy()
         y = torch.stack(y).cpu().numpy()
         self.model.initialize_csp(xfb, y)
-        if on_gpu:
-            self.model.ovr_csp.WT = self.model.ovr_csp.WT.cuda()
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=0)
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
         # return torch.optim.SGD(self.parameters(), lr=0.01, momentum=0.9)
     
     def finetune(self):
