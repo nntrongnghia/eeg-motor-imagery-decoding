@@ -146,7 +146,7 @@ class HDNN(nn.Module):
     def finetune(self):
         for param in self.backbone.parameters():
             param.requires_grad = False
-
+        
 
     def forward(self, xfb: torch.Tensor, return_score=False) -> torch.Tensor:
         """HDNN forward

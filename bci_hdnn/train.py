@@ -61,7 +61,7 @@ def main(args):
                 tb_logger.log_dir, ckpt_name+".ckpt")
 
             callbacks = [
-                EarlyStopping(monitor="val_loss", mode="min", patience=10),
+                EarlyStopping(monitor="val_loss", mode="min", patience=50),
                 ModelCheckpoint(monitor="val_loss", mode="min",
                                 filename=ckpt_name,
                                 dirpath=tb_logger.log_dir)
@@ -90,7 +90,7 @@ def main(args):
         # =====================
         # ==== Finetune =======
         # =====================
-        # lit_model.finetune()
+        lit_model.finetune()
 
         tb_logger = TensorBoardLogger("lightning_logs", name=expe_name,
                                       version=f"finetune_{args.subject}")
