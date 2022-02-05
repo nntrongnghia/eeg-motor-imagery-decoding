@@ -77,7 +77,8 @@ def main(args):
 
             trainer = pl.Trainer.from_argparse_args(args,
                                                     logger=tb_logger,
-                                                    callbacks=callbacks)
+                                                    callbacks=callbacks,
+                                                    **config.trainer_kwargs)
 
             trainer.fit(lit_model,
                         datamodule_pretrain.train_dataloader(),
@@ -98,12 +99,10 @@ def main(args):
         finetune_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
 
         callbacks = [
-            EarlyStopping(monitor="val_kappa", mode="max", patience=50),
+            # EarlyStopping(monitor="val_kappa", mode="max", patience=50),
             ModelCheckpoint(monitor="val_kappa", mode="max",
                             filename=ckpt_name,
                             dirpath=tb_logger.log_dir),
-            # ModelCheckpoint(dirpath=tb_logger.log_dir,
-            #                 every_n_epochs=1, save_top_k=-1)
         ]
 
         datamodule_finetune = IV2aDataModule(args.data_dir,
@@ -116,7 +115,8 @@ def main(args):
 
         trainer = pl.Trainer.from_argparse_args(args,
                                                 logger=tb_logger,
-                                                callbacks=callbacks)
+                                                callbacks=callbacks,
+                                                **config.trainer_kwargs)
         # trainer.fit(lit_model, datamodule=datamodule_finetune)
         trainer.fit(lit_model,
                     datamodule_finetune.train_dataloader(),

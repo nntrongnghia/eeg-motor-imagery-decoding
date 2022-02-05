@@ -45,6 +45,11 @@ def hdnn_base_config():
     # LightningModule config
     cfg.lr = 0.001
 
+    # Trainer
+    cfg.trainer_kwargs = {
+        "stochastic_weight_avg": True
+    }
+
     return cfg
 
 

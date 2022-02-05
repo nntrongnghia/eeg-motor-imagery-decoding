@@ -23,8 +23,9 @@ class LitModel(pl.LightningModule):
         self.model_kwargs = model_kwargs
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
-        self.criterion = nn.CrossEntropyLoss(
-            torch.tensor([1, 8, 3, 1], dtype=torch.float32))
+        # self.criterion = nn.CrossEntropyLoss(
+        #     torch.tensor([1, 8, 3, 1], dtype=torch.float32))
+        self.criterion = nn.CrossEntropyLoss()
 
         # Train metrics
         self.train_kappa = CohenKappa(nb_classes)
@@ -75,8 +76,8 @@ class LitModel(pl.LightningModule):
         self.model.initialize_csp(xfb, y)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
-        # return torch.optim.SGD(self.parameters(), lr=0.01, momentum=0.9)
+        # return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.SGD(self.parameters(), lr=0.01, momentum=0.9)
 
     def finetune(self):
         self.model.finetune()
