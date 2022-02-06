@@ -114,7 +114,7 @@ class BCIC_IV2a:
 
 # test code
 if __name__ == "__main__":
-    data_dir = "/home/nghia/dataset/BCI_IV_2a"
+    data_dir = "/local/nnguye02/dataset/BCI_IV_2a"
     bci = BCIC_IV2a(data_dir)
     epochs = []
     files = [name for name in bci.filenames if "E" in name]

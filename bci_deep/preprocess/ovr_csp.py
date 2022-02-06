@@ -2,8 +2,8 @@ from math import sqrt
 import numpy as np
 import torch
 import torch.nn as nn
-from bci_hdnn.preprocess.filter_bank import FilterBank
-from bci_hdnn.preprocess.csp import CSP
+from bci_deep.preprocess.filter_bank import FilterBank
+from bci_deep.preprocess.csp import CSP
 
 
 class OVR_CSP(nn.Module):

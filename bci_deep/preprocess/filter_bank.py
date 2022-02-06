@@ -115,7 +115,7 @@ class FilterBank(nn.Module):
 
 # test code 
 if __name__ == "__main__":
-    from bci_hdnn.bcic_iv2a import BCIC_IV2a
+    from bci_deep.bcic_iv2a import BCIC_IV2a
 
     bci = BCIC_IV2a("/home/nghia/dataset/BCI_IV_2a")
     data = bci.read_file("A01T.gdf")

@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
-from bci_hdnn.model import HDNN
+from bci_deep.model import HDNN
 from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
 
 

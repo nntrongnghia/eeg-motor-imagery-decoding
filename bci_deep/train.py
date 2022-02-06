@@ -9,9 +9,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 
-import bci_hdnn.model.config as config_collection
-from bci_hdnn.bcic_iv2a import IV2aDataModule
-from bci_hdnn.model import LitModel
+import bci_deep.model.config as config_collection
+from bci_deep.bcic_iv2a import IV2aDataModule
+from bci_deep.model import LitModel
 
 # for reproducibility
 pl.seed_everything(42, workers=True)
@@ -35,7 +35,7 @@ def get_argument_parser():
 
 def main(args):
     if args.config is None:
-        args.config = "hdnn_base_config"
+        args.config = "hdnn_base"
     config = getattr(config_collection, args.config)()
     expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(
         args.config, args.subject, datetime.now())
@@ -86,11 +86,11 @@ def main(args):
             del datamodule_pretrain  # clean after use
 
             lit_model = lit_model.load_from_checkpoint(pretrain_ckpt_path)
-
+            lit_model.finetune()
         # =====================
         # ==== Finetune =======
         # =====================
-        lit_model.finetune()
+        
 
         tb_logger = TensorBoardLogger("lightning_logs", name=expe_name,
                                       version=f"finetune_{args.subject}")
@@ -99,7 +99,7 @@ def main(args):
         finetune_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
 
         callbacks = [
-            EarlyStopping(monitor="val_kappa", mode="max", patience=50),
+            EarlyStopping(monitor="val_kappa", mode="max", patience=100),
             ModelCheckpoint(monitor="val_kappa", mode="max",
                             filename=ckpt_name,
                             dirpath=tb_logger.log_dir),

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from ml_collections import ConfigDict
-from bci_hdnn.preprocess import FilterBank, OVR_CSP
+from bci_deep.preprocess import FilterBank, OVR_CSP
 
 def split_n_segments(x:torch.Tensor, nb_segments:int=4) -> torch.Tensor:
     # Split to n sequences/segments using zero padding if needed

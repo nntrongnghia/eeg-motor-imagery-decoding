@@ -5,7 +5,7 @@ from matplotlib.pyplot import get
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from bci_hdnn.bcic_iv2a.torch_dataset import IV2aDataset
+from bci_deep.bcic_iv2a.torch_dataset import IV2aDataset
 from torch.utils.data import DataLoader, Dataset, random_split
 from sklearn.model_selection import StratifiedShuffleSplit
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     # for reproducibility
     pl.seed_everything(42, workers=True)
-    from bci_hdnn.model.config import hdnn_base_config
+    from bci_deep.model.config import hdnn_base_config
 
     config = hdnn_base_config()
     data_dir = "/home/nghia/dataset/BCI_IV_2a"
