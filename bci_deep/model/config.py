@@ -6,7 +6,7 @@ import bci_deep.bcic_iv2a.transform as T
 from bci_deep.model import HDNN, MLP
 from torchvision.transforms import Compose
 
-def hdnn_base_no_da():
+def hdnn_no_da():
     cfg = ConfigDict()
     # Data config
     cfg.tmin = 0.0
@@ -50,20 +50,21 @@ def hdnn_base_no_da():
 
 
 def hdnn_norm_no_da():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = T.Standardize()
     cfg.test_transform = T.Standardize()
     return cfg
 
 def hdnn_norm_cls_weights():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = T.Standardize()
     cfg.test_transform = T.Standardize()
-    cfg.cls_weights = torch.tensor([1, 5, 1, 5], dtype=torch.float32)
+    w = torch.tensor([1, 10, 1, 10], dtype=torch.float32)
+    cfg.cls_weights = w/w.sum()
     return cfg
 
 def hdnn_norm_flip():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = Compose([
         T.Standardize(),
         T.RandomFlip()
@@ -72,7 +73,7 @@ def hdnn_norm_flip():
     return cfg
 
 def hdnn_norm_scale():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = Compose([
         T.Standardize(),
         T.RandomScale()
@@ -82,7 +83,7 @@ def hdnn_norm_scale():
 
 
 def hdnn_norm_freqshift():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = Compose([
         T.Standardize(),
         T.RandomFrequencyShift()
@@ -91,7 +92,7 @@ def hdnn_norm_freqshift():
     return cfg
 
 def hdnn_norm_uninoise():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = Compose([
         T.UniformNoise(),
         T.Standardize()
@@ -100,7 +101,7 @@ def hdnn_norm_uninoise():
     return cfg
 
 def hdnn_norm_gaussnoise():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = Compose([
         T.GaussianNoise(40),
         T.Standardize()
@@ -109,15 +110,29 @@ def hdnn_norm_gaussnoise():
     return cfg
 
 def hdnn_norm_bar():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.bar_augmentation = True
     cfg.train_transform = T.Standardize()
     cfg.test_transform = T.Standardize()
     return cfg
 
 def hdnn_base():
-    cfg = hdnn_base_no_da()
+    cfg = hdnn_no_da()
     cfg.train_transform = Compose([
+        T.Standardize(),
+        T.RandomScale(),
+        T.RandomFlip(),
+        T.RandomFrequencyShift(),
+    ])
+    cfg.test_transform = T.Standardize()
+    return cfg
+
+
+def hdnn_all_da():
+    cfg = hdnn_no_da()
+    # cfg.bar_augmentation = True
+    cfg.train_transform = Compose([
+        T.UniformNoise(),
         T.Standardize(),
         T.RandomScale(),
         T.RandomFlip(),
