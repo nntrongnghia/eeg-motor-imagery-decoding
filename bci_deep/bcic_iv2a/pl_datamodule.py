@@ -91,6 +91,7 @@ class IV2aDataModule(pl.LightningDataModule):
             self._has_setup_fit = True
 
         if stage in (None, "test"):
+            self.dataset_kwargs["bar_augmentation"] = False
             self.testset = IV2aDataset(**self.dataset_kwargs,
                                        train=False, transform=self.test_transform)
             self.testset.setup()

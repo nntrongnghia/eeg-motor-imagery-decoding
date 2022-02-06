@@ -106,7 +106,7 @@ class GaussianNoise:
 
 
 class UniformNoise:
-    def __init__(self, Cnoise=2) -> None:
+    def __init__(self, Cnoise=4) -> None:
         self.c = Cnoise
     
     def __call__(self, x:np.ndarray):

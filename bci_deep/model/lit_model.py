@@ -18,7 +18,9 @@ class LitModel(pl.LightningModule):
     def __init__(self, model_class: nn.Module = None, 
                 model_kwargs={}, 
                 nb_classes=4, 
-                lr=0.001, **kwargs) -> None:
+                lr=0.001, 
+                cls_weights=None,
+                **kwargs) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.lr = lr
@@ -26,9 +28,10 @@ class LitModel(pl.LightningModule):
         self.model_kwargs = model_kwargs
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
-        # self.criterion = nn.CrossEntropyLoss(
-        #     torch.tensor([1, 8, 3, 1], dtype=torch.float32))
-        self.criterion = nn.CrossEntropyLoss()
+        if cls_weights is None:
+            self.criterion = nn.CrossEntropyLoss()
+        else:
+            self.criterion = nn.CrossEntropyLoss(cls_weights)
 
         # Train metrics
         self.train_kappa = CohenKappa(nb_classes)

@@ -11,6 +11,7 @@ from bci_deep.preprocess import OVR_CSP, FilterBank
 from torch.utils.data import Dataset
 from bci_deep.bcic_iv2a.transform import ToTensor
 import json
+import random
 
 class IV2aDataset(Dataset):
     NB_CLASSES = 4
@@ -162,9 +163,8 @@ class IV2aDataset(Dataset):
             correct_nb_bar_samples = 4*(self.NB_SAMPLES_PER_SUBJECT/4)*(self.NB_SAMPLES_PER_SUBJECT/4 - 1)
             if (len(bar_samples) < int(correct_nb_bar_samples)) or self.overwrite_sample:
                 subject_data = self.datareader.read_file(f"A0{subject}T.gdf", self.tmin, self.tmax)
-                self.sample_filenames += _build_bar_sample(subject_data, prefix)
-            else: 
-                self.sample_filenames += bar_samples
+                bar_samples += _build_bar_sample(subject_data, prefix)
+            self.bar_samples = bar_samples
             logging.info("BAR augmentation ready")
 
 
@@ -175,10 +175,19 @@ class IV2aDataset(Dataset):
 
     
     def __len__(self):
-        return len(self.sample_filenames)
+        if self.bar_augmentation:
+            return len(self.sample_filenames) + self.NB_SAMPLES_PER_SUBJECT
+        else:
+            return len(self.sample_filenames)
 
     def __getitem__(self, idx):
-        sample_filename = self.sample_filenames[idx]
+        if idx < len(self.sample_filenames):
+            sample_filename = self.sample_filenames[idx]
+        elif self.bar_augmentation and self.train:
+            sample_filename = self.bar_samples[random.randrange(len(self.bar_samples))]
+        else:
+            raise ValueError("this should not happen")
+        
         sample = np.load(os.path.join(self.sample_dir, sample_filename))
         x = sample["x"]  # (C, T)
         y = sample["y"]
@@ -207,8 +216,7 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     dataset = IV2aDataset("/local/nnguye02/dataset/BCI_IV_2a", 
         include_subject=["01"],
-        bar_augmentation=True,
-        overwrite_sample=True)
+        bar_augmentation=True)
     dataset.setup()
     print(len(dataset))
     print(dataset[0])
