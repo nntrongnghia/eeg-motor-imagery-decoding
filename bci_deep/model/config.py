@@ -113,3 +113,10 @@ def hdnn_norm_gaussnoise():
     ])
     cfg.test_transform = T.Standardize()
     return cfg
+
+def hdnn_norm_bar():
+    cfg = hdnn_base_no_da()
+    cfg.bar_augmentation = True
+    cfg.train_transform = T.Standardize()
+    cfg.test_transform = T.Standardize()
+    return cfg

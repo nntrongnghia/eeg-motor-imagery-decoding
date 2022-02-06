@@ -21,6 +21,7 @@ class IV2aDataModule(pl.LightningDataModule):
                  train_transform=None, test_transform=None,
                  num_workers=2, batch_size=32, train_ratio=0.8, 
                  overwrite_sample=False,
+                 bar_augmentation=False,
                  **kwargs):
         super().__init__()
         self.dataset_kwargs = {
@@ -35,7 +36,8 @@ class IV2aDataModule(pl.LightningDataModule):
             "exclude_subject": exclude_subject,
             "tmin": tmin,
             "tmax": tmax,
-            "overwrite_sample": overwrite_sample
+            "overwrite_sample": overwrite_sample,
+            "bar_augmentation": bar_augmentation
         }
         self.batch_size = batch_size
         self.train_ratio = train_ratio
