@@ -11,6 +11,13 @@ Things that are implemented in this repo:
 - Baseline model (CNN + LSTM) based on [this paper](https://doi.org/10.1016/j.bspc.2020.102144)
 - Data augmentations for EEG signals
 
+## Table of contents
+1. [Setup](#setup)
+2. [Baseline results](#baseline-results)
+3. [Usage](#usage)
+4. [Want to try your own model? It's easy!](#want-to-try-your-own-model-its-easy)
+5. [Contact](#contact)
+
 ## Setup
 
 This repo is tested with PyTorch 1.10.2 and Python 3.9.7.
