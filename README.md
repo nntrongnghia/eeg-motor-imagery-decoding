@@ -95,6 +95,12 @@ Then the training results (losses, metrics) can be accessed using TensorBoard. T
 tensorboard --logdir lightning_logs
 ```
 
+To run a test of a checkpoint:
+```
+python bci_deep/main.py DATA_DIR SUBJECT --test_ckpt CHECKPOINT
+```
+where `CHECKPOINT` is the path to the checkpoint.
+
 Example in Colab notebook: [here](https://colab.research.google.com/drive/1I2qnpA281TrBaiT9KRdx5_xGsf5_uXZJ?usp=sharing)
 
 ## Want to try your own model? It's easy!
