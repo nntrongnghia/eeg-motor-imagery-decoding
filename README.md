@@ -88,6 +88,8 @@ Options:
 - To run training with a specific configuration, add `--config CONFIG_NAME` with `CONFIG_NAME` is the name of a function returning `ml_collection.ConfigDict` defined in `bci_deep/model/config.py`.
 - To skip the pretraining and train the whole model directly on data of the subject we want to evaluate, add `--no_pretrain`
 
+The `main.py` runs training with Early Stopping, while training, just grab a coffee or take some air :)
+
 Then the training results (losses, metrics) can be accessed using TensorBoard. The directory `lightning_logs` is supposed to be automatically created in the root path of this project.
 ```
 tensorboard --logdir lightning_logs

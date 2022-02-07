@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Tuple
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,12 +14,12 @@ from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
 
 
 class LitModel(pl.LightningModule):
-    def __init__(self, model_class: nn.Module, 
-                model_kwargs={}, 
-                nb_classes=4, 
-                lr=0.001, 
-                cls_weights:torch.Tensor=None,
-                **kwargs) -> None:
+    def __init__(self, model_class: nn.Module,
+                 model_kwargs={},
+                 nb_classes=4,
+                 lr=0.001,
+                 cls_weights: torch.Tensor = None,
+                 **kwargs) -> None:
         """A Lightning Module warps the model and train/val/test steps
 
         Parameters
@@ -182,20 +183,30 @@ class LitModel(pl.LightningModule):
             del df_cm
 
     def training_epoch_end(self, outputs) -> None:
-        # self.log_confusion_matrix(self.train_confusion)
         self.log("train_kappa", self.train_kappa.compute())
         self.log("train_accuracy", self.train_accuracy.compute())
+        if self.trainer._progress_bar_callback is None:
+            loss = float(torch.stack(
+                [out["loss"] for out in outputs]
+            ).mean().detach().cpu().numpy())
+            acc = float(self.train_accuracy.compute().cpu().numpy())
+            kappa = float(self.train_kappa.compute().cpu().numpy())
+            logging.info(
+                f"Epoch {self.current_epoch}, train_loss={loss:.3f}, train_kappa={kappa:.3f}, train_acc={acc:.3f}")
         self.train_kappa.reset()
         self.train_accuracy.reset()
-        # self.train_confusion.reset()
 
     def validation_epoch_end(self, outputs):
-        # self.log_confusion_matrix(self.val_confusion)
         self.log("val_kappa", self.val_kappa.compute())
         self.log("val_accuracy", self.val_accuracy.compute())
+        if self.trainer._progress_bar_callback is None:
+            loss = float(torch.stack(outputs).mean().detach().cpu().numpy())
+            acc = float(self.val_accuracy.compute().cpu().numpy())
+            kappa = float(self.val_kappa.compute().cpu().numpy())
+            logging.info(
+                f"Epoch {self.current_epoch}, val_loss={loss:.3f}, val_kappa={kappa:.3f}, val_acc={acc:.3f}")
         self.val_kappa.reset()
         self.val_accuracy.reset()
-        # self.val_confusion.reset()
 
     def test_epoch_end(self, outputs) -> None:
         self.log_confusion_matrix(self.test_confusion)
