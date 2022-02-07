@@ -94,27 +94,3 @@ class OVR_CSP(nn.Module):
         ZZt = Z @ ZT # (..., M, M)
         diag = ZZt.diagonal(dim1=-2, dim2=-1) # (..., M)
         return torch.log(diag/diag.sum(-1, keepdim=True))
-
-    # def transform(self, xfb: np.ndarray) -> np.ndarray:
-    #     """Feature extraction using OVR-FBCSP algorithm
-
-    #     Parameters
-    #     ----------
-    #     xfb : np.ndarray
-    #         EEG signals filtered by Filter Bank, shape (B, N, C, T)
-    #         B passbands, N trials, C channels, T discrete time
-
-    #     Returns
-    #     -------
-    #     np.ndarray
-    #         Feature matrix, shape (N, B, M)
-    #         with M = 2*m*nb_classes
-    #     """
-    #     assert self.WT is not None, "You should call self.fit first"
-    #     Z = self.WT @ xfb # (B, N, M, T)
-    #     Z = np.moveaxis(Z, 0, 1) # (N, B, M, T)
-    #     ZT = np.moveaxis(Z, -2, -1) # (N, B, T, M)
-    #     ZZt = Z @ ZT # (N, B, M, M)
-    #     diag = np.diagonal(ZZt, axis1=-2, axis2=-1)
-    #     return np.log(diag/diag.sum(-1, keepdims=True))
-

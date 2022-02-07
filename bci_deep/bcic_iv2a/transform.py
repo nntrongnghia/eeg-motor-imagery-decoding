@@ -1,3 +1,5 @@
+"""Transformation to apply on EEG signals
+"""
 import random
 from typing import Dict, Union
 import torch
@@ -107,6 +109,10 @@ class GaussianNoise:
 
 class UniformNoise:
     def __init__(self, Cnoise=4) -> None:
+        """Addictive uniform noise
+        Let's x the signal
+        The noise distribution is [-0.5, 0.5]*x.std()/Cnoise
+        """
         self.c = Cnoise
     
     def __call__(self, x:np.ndarray):
@@ -115,12 +121,21 @@ class UniformNoise:
 
 
 class Standardize:
+    """Standardize the signal to get mean=0 and std=1
+    """
     def __call__(self, x:np.ndarray):
         return (x - x.mean())/x.std()
 
 
 class RandomScale:
     def __init__(self, scale_range=[0.95, 1.05]):
+        """Scale signal by a random factor within a given range
+
+        Parameters
+        ----------
+        scale_range : list, optional
+            by default [0.95, 1.05]
+        """
         self.scale_range = scale_range
     
     def __call__(self, x:np.ndarray):
@@ -129,6 +144,13 @@ class RandomScale:
 
 class RandomFlip:
     def __init__(self, p=0.5):
+        """Randomly flip the signal by a given probability
+
+        Parameters
+        ----------
+        p : float, optional
+            Flip probability, by default 0.5
+        """
         self.p = p
     
     def __call__(self, x:np.ndarray):
@@ -139,6 +161,15 @@ class RandomFlip:
 
 class RandomFrequencyShift:
     def __init__(self, freq_range=[-0.2, 0.2], dt=1/250):
+        """Shift the signal frequency by a random offset within a given range
+
+        Parameters
+        ----------
+        freq_range : list, optional
+            by default [-0.2, 0.2]
+        dt : float, optional
+            Sample time step, by default 1/250 (for BCI IV 2a dataset)
+        """
         self.freq_range = freq_range
         self.dt = dt
 

@@ -1,14 +1,18 @@
+"""
+Experiment configurations.
+Feel free to play around
+"""
 import torch
 import torch.nn as nn
 from ml_collections import ConfigDict
 
 import bci_deep.bcic_iv2a.transform as T
-from bci_deep.model import HDNN, MLP
+from bci_deep.model import HDNN
 from torchvision.transforms import Compose
 
 def hdnn_no_da():
     cfg = ConfigDict()
-    # Data config
+    # Datamodule config
     cfg.tmin = 0.0
     cfg.tmax = 4.0
     cfg.nb_classes = 4
@@ -16,11 +20,8 @@ def hdnn_no_da():
     cfg.nb_segments = L = 4 # L default=4
     cfg.m_filters = 2
     M = 2*cfg.m_filters*cfg.nb_classes
-
-    # Datamodule config
     cfg.num_workers = 3
     cfg.batch_size = 24
-    cfg.train_ratio = 1.0
 
     # HDNN config
     cfg.model_class = HDNN
@@ -39,7 +40,6 @@ def hdnn_no_da():
 
     # LightningModule optimizer config
     cfg.lr = 0.001
-
 
     # Trainer
     cfg.trainer_kwargs = {

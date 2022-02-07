@@ -1,7 +1,8 @@
 """
-Inspired from https://github.com/fbcsptoolbox/fbcsp_code
+A class to read EEG signals from .gdf and .mat files
+of the BCIC IV 2a dataset.
+https://www.bbci.de/competition/iv/#dataset2a
 """
-import glob
 import logging
 import os
 
@@ -16,7 +17,7 @@ class BCIC_IV2a:
 
     def __init__(self, data_dir: str):
         """
-        Dataloader for BCI Competition IV 2a Dataset
+        Raw data reader for BCI Competition IV 2a Dataset
 
         The directory structure should be:
 
@@ -45,7 +46,7 @@ class BCIC_IV2a:
         logging.info(f"Read {filepath}")
         return mne.io.read_raw_gdf(filepath, verbose="ERROR")
 
-    def read_file(self, filename: str, tmin=-2.0, tmax=5.0, baseline=None):
+    def read_file(self, filename: str, tmin=0.0, tmax=4.0, baseline=None):
         """Get data as np.ndarray from a given filename
 
         Parameters
@@ -53,11 +54,9 @@ class BCIC_IV2a:
         filename : str
             GDF filename
         tmin, tmax: float
-            Start and end time of the epochs in seconds, 
-            relative to the time-locked event. 
-            Defaults to 0.0 and 3.0 respectively (based on BCIC IV 2a description)
-            (TODO: check 10.3389/fnins.2012.00039 for time segment choice)
-        baseline : [type], optional
+            Start and end time in seconds, relative to the start of each cue
+            Defaults to 0.0 and 4.0 respectively (based on BCIC IV 2a description)
+        baseline : 
             Baseline correction. 
             For more details: https://mne.tools/stable/generated/mne.Epochs.html
 
@@ -110,15 +109,3 @@ class BCIC_IV2a:
                     'fs': sample_freq,
                     "subject": subject}
         return eeg_data
-
-
-# test code
-if __name__ == "__main__":
-    data_dir = "/local/nnguye02/dataset/BCI_IV_2a"
-    bci = BCIC_IV2a(data_dir)
-    epochs = []
-    files = [name for name in bci.filenames if "E" in name]
-    data = bci.read_file(files[3])
-    # for filename in files:
-    #     data = bci.read_file(filename)
-    #     epochs.append(data)

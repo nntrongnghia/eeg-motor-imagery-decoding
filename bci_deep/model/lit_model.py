@@ -1,6 +1,4 @@
-from inspect import CO_ASYNC_GENERATOR
-from random import sample
-from typing import Tuple
+from typing import Dict, Tuple
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -15,12 +13,31 @@ from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
 
 
 class LitModel(pl.LightningModule):
-    def __init__(self, model_class: nn.Module = None, 
+    def __init__(self, model_class: nn.Module, 
                 model_kwargs={}, 
                 nb_classes=4, 
                 lr=0.001, 
-                cls_weights=None,
+                cls_weights:torch.Tensor=None,
                 **kwargs) -> None:
+        """A Lightning Module warps the model and train/val/test steps
+
+        Parameters
+        ----------
+        model_class : nn.Module
+            Subclass of nn.Module, use to build the model.
+            The model input: filtered EEG signals of shape (N, C, B, T)
+            N trials, C channels, B filter bands, T time
+        model_kwargs : dict, optional
+            Keyword arguments to instantiate the model
+            By default {}
+        nb_classes : int, optional
+            Number of classes, by default 4
+        lr : float, optional
+            Learning rate, by default 0.001
+        cls_weights : torch.Tensor, optional
+            Loss weights for each class, by default None.
+            Must be a float 1-D tensor of shape (nb_classes,)
+        """
         super().__init__()
         self.save_hyperparameters()
         self.lr = lr
@@ -63,7 +80,7 @@ class LitModel(pl.LightningModule):
                 labels, shape (N,)
         """
         dataset = train_dataloader.dataset
-        B, C, T = dataset[0]["xfb"].shape
+        B, C, T = dataset[0]["eeg_fb"].shape
 
         if len(dataset) > 512:
             sample_idx = np.random.randint(0, len(dataset), 512)
@@ -74,7 +91,7 @@ class LitModel(pl.LightningModule):
         y = []
         for idx in sample_idx:
             sample = dataset[idx]
-            xfb.append(sample["xfb"])
+            xfb.append(sample["eeg_fb"])
             y.append(sample["y"])
 
         xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy()
@@ -84,22 +101,18 @@ class LitModel(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
-        # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
-        # return {
-        #     "optimizer": optimizer,
-        #     "lr_scheduler": scheduler,
-        #     "inverval": "epoch",
-        #     "frequency": 1
-        # }
 
     def finetune(self):
+        """Wraper for model.fintune() 
+        which freezes some layers for transfer learning (finetuning)
+        """
         self.model.finetune()
 
     def forward(self, x):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        x, y = batch["xfb"], batch["y"].reshape(-1,)
+        x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
         # inference
         logits = self(x)
         pred_scores = torch.softmax(logits, -1)
@@ -115,7 +128,7 @@ class LitModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch["xfb"], batch["y"].reshape(-1,)
+        x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
         # inference
         logits = self(x)
         pred_scores = torch.softmax(logits, -1)
@@ -130,7 +143,7 @@ class LitModel(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        x, y = batch["xfb"], batch["y"].reshape(-1,)
+        x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
         # inference
         logits = self(x)
         pred_scores = torch.softmax(logits, -1)
@@ -150,20 +163,23 @@ class LitModel(pl.LightningModule):
             confusion_matrix,
             index=range(self.nb_classes),
             columns=range(self.nb_classes))
-        plt.figure(figsize=(10, 7))
-        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
-        plt.xlabel("Predictions")
-        plt.ylabel("Targets")
-        plt.close(fig_)
-        self.logger.experiment.add_figure(
-            "Confusion matrix", fig_, self.current_epoch)
+        print("CONFUSION MATRIX")
+        print(df_cm)
+        if self.logger is not None:
+            plt.figure(figsize=(10, 7))
+            fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
+            plt.xlabel("Predictions")
+            plt.ylabel("Targets")
+            plt.close(fig_)
+            self.logger.experiment.add_figure(
+                "Confusion matrix", fig_, self.current_epoch)
 
-        plt.figure().clear()
-        plt.close()
-        plt.cla()
-        plt.clf()
-        del fig_
-        del df_cm
+            plt.figure().clear()
+            plt.close()
+            plt.cla()
+            plt.clf()
+            del fig_
+            del df_cm
 
     def training_epoch_end(self, outputs) -> None:
         # self.log_confusion_matrix(self.train_confusion)

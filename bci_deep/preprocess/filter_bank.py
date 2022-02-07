@@ -8,11 +8,10 @@ from torchaudio.functional import lfilter
 
 
 class FilterBank(nn.Module):
-    def __init__(self, fs, nb_bands=9, f_width=4, f_min=4, f_max=40, f_trans=2,
-                 gpass=3.0, gstop=30.0
-                 ):
-        """Filter Bank class. __call__ method will apply 
-        passband Chebyshev type II filters.
+    def __init__(self, fs, nb_bands=9, 
+                 f_width=4.0, f_min=4.0, f_max=40.0, f_trans=2.0,
+                 gpass=3.0, gstop=30.0):
+        """Filter Bank to apply passband Chebyshev type II filters
 
         Parameters
         ----------
@@ -73,7 +72,8 @@ class FilterBank(nn.Module):
         self.b_coeffs = torch.tensor(self.b_coeffs, requires_grad=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Filter data by Filter Bank
+        """Filter data by Filter Bank, use torch function
+        Note: this function maybe slower than np_forward
 
         Parameters
         ----------
@@ -90,8 +90,8 @@ class FilterBank(nn.Module):
         x = x.unsqueeze(-2).repeat_interleave(self.B, -2)
         return lfilter(x, self.a_coeffs, self.b_coeffs, clamp=False)
 
-    def np_forward(self, x: np.ndarray)-> np.ndarray:
-        """Filter data by Filter Bank
+    def np_forward(self, x: np.ndarray) -> np.ndarray:
+        """Filter data by Filter Bank, use numpy function
 
         Parameters
         ----------
@@ -109,11 +109,10 @@ class FilterBank(nn.Module):
         a_coeffs = self.a_coeffs.numpy()
         b_coeffs = self.b_coeffs.numpy()
         xfb = [signal.lfilter(b, a, x) for a, b in zip(a_coeffs, b_coeffs)]
-        # for a, b in zip(a_coeffs, b_coeffs):
-        #     xfb.append(signal.lfilter(b, a, x))
         return np.stack(xfb, -2)
 
-# test code 
+
+# test code
 if __name__ == "__main__":
     from bci_deep.bcic_iv2a import BCIC_IV2a
 

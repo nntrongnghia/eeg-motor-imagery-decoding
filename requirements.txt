@@ -1,10 +1,13 @@
-mne
-scikit-learn
-numpy
-matplotlib
-pytorch-lightning
-ml-collections==0.1.1
-torchmetrics
-pandas
-seaborn
-pyyaml
+matplotlib==3.5.1
+ml_collections==0.1.1
+mne==0.24.1
+numpy==1.22.1
+pandas==1.4.0
+pytorch_lightning==1.5.9
+scikit_learn==1.0.2
+scipy==1.7.3
+seaborn==0.11.2
+# torch==1.10.2
+# torchaudio==0.10.2
+# torchmetrics==0.7.0
+# torchvision==0.11.3

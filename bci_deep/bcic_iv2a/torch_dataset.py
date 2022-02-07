@@ -1,3 +1,6 @@
+"""
+A subclass of PyTorch Dataset to load data.
+"""
 import pickle
 import os
 import logging
@@ -19,13 +22,66 @@ class IV2aDataset(Dataset):
     NB_SAMPLES_PER_SUBJECT = 288
 
     def __init__(self,
-                 data_dir, train: bool = True, 
-                 nb_bands=9, f_width=4, f_min=4, f_max=40, f_trans=2, gpass=3, gstop=30,
+                 data_dir, train: bool = True, nb_bands=9, 
+                 f_width=4.0, f_min=4.0, f_max=40.0, f_trans=2.0, 
+                 gpass=3.0, gstop=30.0,
                  include_subject: List[str] = [], 
                  exclude_subject: List[str] = [],
                  tmin=0.0, tmax=4.0, transform=None,
                  sample_dir="sample", overwrite_sample=False,
                  bar_augmentation=False, **kwargs) -> None:
+        """Subclass of PyTorch Dataset to load data for training/testing
+        This class will export EEG signals and labels to npz files
+
+        Parameters
+        ----------
+        data_dir : str
+            Path to dataset directory
+        train : bool, optional
+            If True, load training data "T",
+            or else, load evaluation data "E"
+            By default True
+        nb_bands : int, optional
+            Number of bands in Filter Bank, by default 9
+       f_width : float, optional
+            Bandwidth of passband filter in Filter Bank, in Hz
+            By default 4
+        f_min : float, optional
+            Filter Bank lower limit in Hz, by default 4
+        f_max : float, optional
+            Filter Bank lower limit in Hz, by default 40
+        f_trans : float, optional
+            Transition between stopband and passband, in Hz
+            By default 2.0
+        gpass : float, optional
+            The maximum loss in the passband (dB)
+            By default 3.0
+        gstop : float, optional
+            The minimum attenuation in the stopband (dB)
+            By default 30.0
+        include_subject : List[str], optional
+            List of subject that you want to get, ex: ["01", "02"]
+            By default [], which mean all subjects
+        exclude_subject : List[str], optional
+            List of subject that you don't want to get, ex: ["01", "02"]
+            By default []
+        tmin, tmax: float
+            Start and end time in seconds, relative to the start of each cue
+            Defaults to 0.0 and 4.0 respectively (based on BCIC IV 2a description)
+        transform : [type], optional
+            Transformation to apply to EEG raw signals.
+            Check bci_deep/bcic_iv2a/transform.py for inspiration
+            By default None
+        sample_dir : str, optional
+            Directory name to save npz files, by default "sample"
+            This will be create under `data_dir` 
+        overwrite_sample : bool, optional
+            If True, rebuild npz files, by default False
+        bar_augmentation : bool, optional
+            If True, use Brain Area Recombination (BAR) in training.
+            For details: https://www.frontiersin.org/articles/10.3389/fnhum.2021.645952/full
+            By default False
+        """
         super().__init__()
         self.filter = FilterBank(self.FS, nb_bands, f_width, f_min, f_max, f_trans, gpass, gstop)
         self.tmin, self.tmax = tmin, tmax
@@ -54,12 +110,18 @@ class IV2aDataset(Dataset):
         }
 
     def save_info_as_json(self):
+        """Save dataset information in json file at self.sample_dir
+        """
         logging.info(f"Save info.json into {self.sample_dir}")
         json_path = os.path.join(self.sample_dir, "info.json")
         with open(json_path, "w") as f:
             json.dump(self.info, f, indent=4)
 
     def build_subject_list(self):
+        """Get list of subjects of interest
+        If `self.include_subjects` is not empty, we take only data of these subjects
+        If `self.exclude_subjects` is not empty, data of these subjects will not be included
+        """
         self.subject_list = []
         for filename in self.datareader.filenames:
             s = filename[1:3]
@@ -78,7 +140,9 @@ class IV2aDataset(Dataset):
         self.subject_list = [int(s) for s in self.subject_list]
 
 
-    def save_pickle_files(self):
+    def save_sample_files(self):
+        """Sample EEG signals and its labels to npz files
+        """
         def _save_subject_data(data:dict, subject:int):
             filenames = []
             suffix = "T" if self.train else "E"
@@ -171,7 +235,7 @@ class IV2aDataset(Dataset):
     def setup(self):
         logging.info("IV2aDataset setup ...")
         self.build_subject_list()
-        self.save_pickle_files()
+        self.save_sample_files()
 
     
     def __len__(self):
@@ -196,34 +260,15 @@ class IV2aDataset(Dataset):
         if self.transform is not None:
             x = self.transform(x)
         
-        # xfb = self.filter(torch.tensor(x)).moveaxis(-2, -3) # (B, C, T)
         xfb = self.filter.np_forward(x) # (C, B, T)
         xfb = np.moveaxis(xfb, 1, 0)
         xfb = torch.tensor(xfb)
 
         sample = {
             "y": y,
-            "s": s
+            "s": s,
+            "eeg": x
         }
         sample = ToTensor()(sample)
-        sample["xfb"] = xfb.to(torch.float32)
+        sample["eeg_fb"] = xfb.to(torch.float32)
         return sample
-
-
-# test code
-if __name__ == "__main__":
-    from sklearn.model_selection import StratifiedShuffleSplit   
-    logging.getLogger().setLevel(logging.INFO)
-    dataset = IV2aDataset("/local/nnguye02/dataset/BCI_IV_2a", 
-        include_subject=["01"],
-        bar_augmentation=True)
-    dataset.setup()
-    print(len(dataset))
-    print(dataset[0])
-    print("done")
-    # spliter = StratifiedShuffleSplit(1, train_size=0.8)
-    # y = dataset.y + dataset.s*10
-    # train_idx, val_idx = next(spliter.split(dataset.x, y))
-    # print("Train split", np.unique(y[train_idx], return_counts=True))
-    # print("Val split", np.unique(y[val_idx], return_counts=True))
-    # print("Done")

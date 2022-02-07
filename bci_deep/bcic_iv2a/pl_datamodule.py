@@ -1,3 +1,6 @@
+"""
+DataModule to feed PyTorch Lightning Trainer
+"""
 from copy import deepcopy
 from typing import List, Optional, Tuple
 from matplotlib.pyplot import get
@@ -12,17 +15,67 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 class IV2aDataModule(pl.LightningDataModule):
     def __init__(self, data_dir,
-                 nb_segments=4, nb_bands=9,
+                 nb_bands=9,
                  f_width=4, f_min=4, f_max=40,
                  gpass=3.0, gstop=30.0,
                  include_subject: List[str] = [],
                  exclude_subject: List[str] = [],
                  tmin=0.0, tmax=4.0,
                  train_transform=None, test_transform=None,
-                 num_workers=2, batch_size=32, train_ratio=0.8, 
+                 num_workers=2, batch_size=32, train_ratio=1.0, 
                  overwrite_sample=False,
                  bar_augmentation=False,
                  **kwargs):
+        """DataModule to feed PyTorch Lightning Trainer
+        This module wraps around IV2aDataset - a PyTorch Dataset subclass
+
+        Parameters
+        ----------
+        data_dir : str
+            Path to dataset directory
+        nb_bands : int, optional
+            Number of bands in Filter Bank, by default 9
+        f_width : float, optional
+            Bandwidth of passband filter in Filter Bank, in Hz
+            By default 4
+        f_min : float, optional
+            Filter Bank lower limit in Hz, by default 4
+        f_max : float, optional
+            Filter Bank lower limit in Hz, by default 40
+        gpass : float, optional
+            The maximum loss in the passband (dB)
+            By default 3.0
+        gstop : float, optional
+            The minimum attenuation in the stopband (dB)
+            By default 30.0
+        include_subject : List[str], optional
+            List of subject that you want to get, ex: ["01", "02"]
+            By default [], which mean all subjects
+        exclude_subject : List[str], optional
+            List of subject that you don't want to get, ex: ["01", "02"]
+            By default []
+        tmin, tmax: float
+            Start and end time in seconds, relative to the start of each cue
+            Defaults to 0.0 and 4.0 respectively (based on BCIC IV 2a description)
+        train_transform, test_transform : optional
+            Transformation to apply to EEG raw signals.
+            Check bci_deep/bcic_iv2a/transform.py for inspiration
+            By default None
+        num_workers : int, optional
+            Number of workers to fetch data, by default 2
+        batch_size : int, optional
+            By default 32
+        train_ratio : float, optional
+            Ratio to split "T" BCIC IV 2a dataset to train and validation.
+            WARNING: this fucntion is not implemented.
+            By default 1.0
+        overwrite_sample : bool, optional
+            If True, rebuild sample in npz format, by default False
+        bar_augmentation : bool, optional
+            If True, use Brain Area Recombination (BAR) in training.
+            For details: https://www.frontiersin.org/articles/10.3389/fnhum.2021.645952/full
+            By default False
+        """
         super().__init__()
         self.dataset_kwargs = {
             "data_dir": data_dir,
@@ -45,35 +98,21 @@ class IV2aDataModule(pl.LightningDataModule):
         self.test_transform = test_transform
         self.shuffle = True
         self.num_workers = num_workers
+        # decrease this factor if you have problem with RAM or CPU
+        self.prefetch_factor = 16
 
     def split_train_val(self, dataset: IV2aDataset, train_ratio=0.8) -> Tuple[IV2aDataset]:
+        """Not implemented yet
+        """
         if train_ratio == 1.0:
             return dataset, None
         else:
             raise NotImplementedError
-        # spliter = StratifiedShuffleSplit(1, train_size=train_ratio)
-        # y = dataset.y + dataset.s*10
-        # train_idx, val_idx = next(spliter.split(dataset.x, y))
-        # val_dataset = deepcopy(dataset)
-        # train_dataset = dataset
-
-        # val_dataset.x = val_dataset.x[val_idx]
-        # val_dataset.y = val_dataset.y[val_idx]
-        # val_dataset.s = val_dataset.s[val_idx]
-        # val_dataset.transform = self.test_transform
-
-        # train_dataset.x = train_dataset.x[train_idx]
-        # train_dataset.y = train_dataset.y[train_idx]
-        # train_dataset.s = train_dataset.s[train_idx]
-
-        # return train_dataset, val_dataset
 
     def setup(self, stage: Optional[str] = None):
         """Setup DataModule
 
-        1. Instantiate dataset w.r.t. `stage`
-        2. Preload EEG samples with corresponding labels
-        3. Fit OVR-FBCSP
+        Instantiate dataset and run setup with regard to the stage
 
         Parameters
         ----------
@@ -102,33 +141,18 @@ class IV2aDataModule(pl.LightningDataModule):
             raise ValueError("You should run `self.setup(stage='fit')`")
         return DataLoader(self.trainset, batch_size=self.batch_size,
                           shuffle=self.shuffle, num_workers=self.num_workers,
-                          prefetch_factor=16)
+                          prefetch_factor=self.prefetch_factor)
 
     def val_dataloader(self):
         if getattr(self, "valset", None) is None:
             raise ValueError("You should run `self.setup(stage='fit')`")
         return DataLoader(self.valset, batch_size=self.batch_size,
                           shuffle=False, num_workers=self.num_workers,
-                          prefetch_factor=16)
+                          prefetch_factor=self.prefetch_factor)
 
     def test_dataloader(self):
         if getattr(self, "testset", None) is None:
             raise ValueError("You should run `self.setup(stage='test')`")
         return DataLoader(self.testset, batch_size=self.batch_size,
                           shuffle=False, num_workers=self.num_workers,
-                          prefetch_factor=16)
-
-
-# test code
-if __name__ == "__main__":
-    import pytorch_lightning as pl
-
-    # for reproducibility
-    pl.seed_everything(42, workers=True)
-    from bci_deep.model.config import hdnn_base_config
-
-    config = hdnn_base_config()
-    data_dir = "/home/nghia/dataset/BCI_IV_2a"
-    datamodule = IV2aDataModule(data_dir, exclude_subject=["01"], **config)
-    datamodule.setup(stage="fit")
-    print("Done")
+                          prefetch_factor=self.prefetch_factor)

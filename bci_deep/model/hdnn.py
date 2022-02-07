@@ -1,3 +1,6 @@
+"""
+Hybrid Deep Neural Network from https://doi.org/10.1016/j.bspc.2020.102144
+"""
 from turtle import forward
 from typing import Tuple
 import numpy as np
@@ -8,6 +11,21 @@ from ml_collections import ConfigDict
 from bci_deep.preprocess import FilterBank, OVR_CSP
 
 def split_n_segments(x:torch.Tensor, nb_segments:int=4) -> torch.Tensor:
+    """Split the signal in time. Use zero padding if needed.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Shape (..., T)
+    nb_segments : int, optional
+        by default 4
+
+    Returns
+    -------
+    torch.Tensor
+        Splited signal, shape (L, ... splited T)
+        with L number of segments
+    """
     # Split to n sequences/segments using zero padding if needed
     pad_width = nb_segments - x.shape[-1] % nb_segments
     pad_before = pad_width // 2
@@ -17,20 +35,35 @@ def split_n_segments(x:torch.Tensor, nb_segments:int=4) -> torch.Tensor:
     x = torch.stack(x) # (L, ..., seglen)
     return x
 
+
 class Backbone(nn.Module):
     def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
                  lstm_hidden_size=64, lstm_output_size=32,
                  lstm_input_size=32, lstm_num_layers=3, p_dropout=0.2) -> None:
-        """Temporal and spatial feature extration
+        """Temporal and spatial feature extration using CNN and LSTM
 
         Parameters
         ----------
-        input_dims : Tuple[int, int, int, int]
+        input_dims : Tuple
             Input dimensions (L, 1, B, M)
             L: sequence length
             B: nb filter bands
             M: nb of features
+        cnn1_out_channels : int, optional
+            Output dimension of CNN1, by default 4
+        lstm_hidden_size : int, optional
+            LSTM cell hidden dimension, by default 64
+        lstm_output_size : int, optional
+            LSTM output dimension, by default 32
+        lstm_input_size : int, optional
+            LSTM input dimension, by default 32
+        lstm_num_layers : int, optional
+            Number of stacked LSTM cells, by default 3
+        p_dropout : float, optional
+            Probability of dropout, by default 0.2
+            Note: not used in backbone
         """
+        
         super().__init__()
         c1 = cnn1_out_channels  # c1 for short
         L, _, B, M = input_dims
@@ -106,6 +139,37 @@ class HDNN(nn.Module):
                  lstm_hidden_size=64, lstm_output_size=32,
                  lstm_input_size=32, lstm_num_layers=3,
                  p_dropout=0.2, head_hidden_dim=512, nb_classes=4, **kwargs) -> None:
+        """Hybrid Deep Neural Network from https://doi.org/10.1016/j.bspc.2020.102144
+
+        Parameters
+        ----------
+        input_dims : Tuple
+            Input dimensions (L, 1, B, M)
+            L: sequence length
+            B: nb filter bands
+            M: nb of features
+        nb_segments : int, optional
+            Number of time segments to be splited, by default 4
+        m_filters : int, optional
+            Number of CSP features, by default 2
+        cnn1_out_channels : int, optional
+            Output dimension of CNN1, by default 4
+        lstm_hidden_size : int, optional
+            LSTM cell hidden dimension, by default 64
+        lstm_output_size : int, optional
+            LSTM output dimension, by default 32
+        lstm_input_size : int, optional
+            LSTM input dimension, by default 32
+        lstm_num_layers : int, optional
+            Number of stacked LSTM cells, by default 3
+        p_dropout : float, optional
+            Probability of dropout, by default 0.2
+        head_hidden_dim : int, optional
+            MLP classifier hidden dimension, by default 512
+        nb_classes : int, optional
+            Number of classes, by default 4
+        """
+        
         super().__init__()
         self.nb_segments = nb_segments
         self.ovr_csp = OVR_CSP(nb_classes, m_filters)
@@ -126,6 +190,9 @@ class HDNN(nn.Module):
         self.initialize_weights()
 
     def initialize_weights(self):
+        """Initialize weights using Normal Distribution of mean 0 and std 0.1
+        based on the paper
+        """
         for param in self.parameters():
             nn.init.normal_(param, std=0.1)
 
@@ -144,6 +211,8 @@ class HDNN(nn.Module):
         self.ovr_csp.fit(xfb, y)
 
     def finetune(self):
+        """Freeze the backbone for transfer learning
+        """
         for param in self.backbone.parameters():
             param.requires_grad = False
         
@@ -171,13 +240,3 @@ class HDNN(nn.Module):
             return torch.softmax(logits, dim=-1)
         else:
             return logits
-
-
-
-
-# test
-if __name__ == "__main__":
-    backbone = Backbone((4, 1, 9, 16))
-    x = torch.rand(32, 4, 1, 9, 16)
-    ft = backbone(x)
-    print(ft.shape)
