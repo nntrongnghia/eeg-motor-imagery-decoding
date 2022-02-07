@@ -14,7 +14,7 @@ from bci_deep.bcic_iv2a import IV2aDataModule
 from bci_deep.model import LitModel
 
 # for reproducibility
-pl.seed_everything(42, workers=True)
+# pl.seed_everything(42, workers=True)
 
 
 logging.getLogger().setLevel(logging.INFO)
@@ -35,7 +35,7 @@ def get_argument_parser():
 
 def main(args):
     if args.config is None:
-        args.config = "hdnn_base"
+        args.config = "hdnn_all_da"
     config = getattr(config_collection, args.config)()
     expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(
         args.config, args.subject, datetime.now())
