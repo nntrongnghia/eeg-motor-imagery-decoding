@@ -192,12 +192,8 @@ class HDNN(nn.Module):
         """Initialize weights using Normal Distribution of mean 0 and std 0.1
         based on the paper
         """
-        std = 0.1
-        a = -3*std
-        b = 3*std
         for param in self.parameters():
-            # nn.init.normal_(param, std=0.1)
-            nn.init.trunc_normal_(param, std=std, a=a, b=b)
+            nn.init.normal_(param, std=0.1)
 
     @torch.no_grad()
     def initialize_csp(self, xfb:np.ndarray, y:np.ndarray, on_gpu=False):

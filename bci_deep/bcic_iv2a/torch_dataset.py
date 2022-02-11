@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn.functional as F
-from bci_deep.bcic_iv2a import BCIC_IV2a
+from bci_deep.bcic_iv2a import IV2aReader
 from bci_deep.preprocess import OVR_CSP, FilterBank
 from torch.utils.data import Dataset
 from bci_deep.bcic_iv2a.transform import ToTensor
@@ -88,7 +88,7 @@ class IV2aDataset(Dataset):
         self.train = train
         self.include_subjects = include_subject
         self.exclude_subjects = exclude_subject
-        self.datareader = BCIC_IV2a(data_dir)
+        self.datareader = IV2aReader(data_dir)
         self.transform = transform
         self.overwrite_sample = overwrite_sample
         self.sample_filenames = None # initialized by self.setup

@@ -10,7 +10,7 @@ from torchaudio.functional import lfilter
 class FilterBank(nn.Module):
     def __init__(self, fs, nb_bands=9, 
                  f_width=4.0, f_min=4.0, f_max=40.0, f_trans=2.0,
-                 gpass=3.0, gstop=30.0):
+                 gpass=3.0, gstop=30.0, **kwargs):
         """Filter Bank to apply passband Chebyshev type II filters
 
         Parameters
@@ -114,9 +114,9 @@ class FilterBank(nn.Module):
 
 # test code
 if __name__ == "__main__":
-    from bci_deep.bcic_iv2a import BCIC_IV2a
+    from bci_deep.bcic_iv2a import IV2aReader
 
-    bci = BCIC_IV2a("/home/nghia/dataset/BCI_IV_2a")
+    bci = IV2aReader("/home/nghia/dataset/BCI_IV_2a")
     data = bci.read_file("A01T.gdf")
     x = data["x_data"][:32]
     y = data["y_labels"][:32]

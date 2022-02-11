@@ -120,7 +120,7 @@ class UniformNoise:
         return x + noise
 
 
-class Normalize:
+class Standardize:
     """Normalize signal by mean and std
     """
     def __init__(self, mean=None, std=None, channel_wise=False):

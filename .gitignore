@@ -146,7 +146,7 @@ cython_debug/
 
 sandbox
 docs
-lightning_logs
+lightning_logs*
 .vscode
 checkpoints
 results

@@ -86,10 +86,6 @@ def tune_mnist_asha(config, args,
                     num_epochs=1000, 
                     gpus_per_trial=0, 
                     local_dir="./ray_results"):
-    # config = {
-    #     "lr": tune.loguniform(1e-5, 1e-2),
-    #     "batch_size": tune.choice([8, 16, 24, 32, 64, 128]),
-    # }
 
     scheduler = ASHAScheduler(
         max_t=num_epochs,
