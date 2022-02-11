@@ -19,7 +19,6 @@ def hdnn_no_da():
     cfg.nb_bands = 16 # B
     cfg.nb_segments = 4 # L default=4
     cfg.m_filters = 2
-    cfg.M = 2*cfg.m_filters*cfg.nb_classes
     cfg.num_workers = 3
     cfg.batch_size = 24
 
@@ -33,7 +32,7 @@ def hdnn_no_da():
     cfg.p_dropout = 0.2
     cfg.head_hidden_dim = 128
 
-    # LightningModule optimizer config
+    # LightningModule config
     cfg.lr = 0.001
 
     # Trainer
@@ -134,18 +133,4 @@ def hdnn_all_da():
         T.RandomFrequencyShift(),
     ])
     cfg.test_transform = T.Normalize()
-    return cfg
-
-def hdnn_all_da_A06():
-    cfg = hdnn_no_da()
-    norm_fn = T.Normalize()
-    cfg.train_transform = Compose([
-        norm_fn,
-        T.UniformNoise(),
-        T.RandomScale(),
-        T.RandomFlip(),
-        T.RandomFrequencyShift(),
-    ])
-    cfg.test_transform = norm_fn
-    # cfg.use_focal_loss = True
     return cfg

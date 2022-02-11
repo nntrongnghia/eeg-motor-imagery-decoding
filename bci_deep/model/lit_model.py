@@ -33,8 +33,7 @@ class LitModel(pl.LightningModule):
     def __init__(self, model_class: nn.Module,
                  nb_classes=4,
                  lr=0.001,
-                 cls_weights: torch.Tensor = None,
-                 use_focal_loss=False,
+                 loss_fn=nn.CrossEntropyLoss(),
                  **model_kwargs) -> None:
         """A Lightning Module warps the model and train/val/test steps
 
@@ -62,13 +61,7 @@ class LitModel(pl.LightningModule):
         model_kwargs["nb_classes"] = nb_classes
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
-        if use_focal_loss:
-            self.criterion = softmax_focal_loss
-        else:
-            if cls_weights is None:
-                self.criterion = nn.CrossEntropyLoss()
-            else:
-                self.criterion = nn.CrossEntropyLoss(cls_weights)
+        self.criterion = loss_fn
 
         # Train metrics
         self.train_kappa = CohenKappa(nb_classes)
@@ -87,7 +80,7 @@ class LitModel(pl.LightningModule):
         self.test_confusion = ConfusionMatrix(nb_classes)
 
     @torch.no_grad()
-    def initialize_csp(self, train_dataloader: DataLoader):
+    def initialize_csp(self, datamodule: pl.LightningDataModule):
         """Initialize CSP transformation matrix
 
         Parameters
@@ -100,7 +93,9 @@ class LitModel(pl.LightningModule):
             y : np.ndarray
                 labels, shape (N,)
         """
-        dataset = train_dataloader.dataset
+        dataset = datamodule.trainset
+        dataset.transform = datamodule.test_transforms
+        
         B, C, T = dataset[0]["eeg_fb"].shape
 
         if len(dataset) > 512:
@@ -115,7 +110,7 @@ class LitModel(pl.LightningModule):
             xfb.append(sample["eeg_fb"])
             y.append(sample["y"])
 
-        xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy()
+        xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy() # (B, N, C, T)
         y = torch.stack(y).cpu().numpy()
         self.model.initialize_csp(xfb, y)
 

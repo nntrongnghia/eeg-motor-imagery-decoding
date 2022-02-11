@@ -145,11 +145,6 @@ class HDNN(nn.Module):
 
         Parameters
         ----------
-        input_dims : Tuple
-            Input dimensions (L, 1, B, M)
-            L: sequence length
-            B: nb filter bands
-            M: nb of features
         nb_segments : int, optional
             Number of time segments to be splited, by default 4
         m_filters : int, optional
@@ -170,6 +165,7 @@ class HDNN(nn.Module):
             MLP classifier hidden dimension, by default 512
         nb_classes : int, optional
             Number of classes, by default 4
+        
         """
         
         super().__init__()
@@ -196,7 +192,7 @@ class HDNN(nn.Module):
         """Initialize weights using Normal Distribution of mean 0 and std 0.1
         based on the paper
         """
-        std = 0.01
+        std = 0.1
         a = -3*std
         b = 3*std
         for param in self.parameters():

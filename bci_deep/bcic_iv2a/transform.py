@@ -123,12 +123,17 @@ class UniformNoise:
 class Normalize:
     """Normalize signal by mean and std
     """
-    def __init__(self, mean=None, std=None):
+    def __init__(self, mean=None, std=None, channel_wise=False):
         self.mean = mean
         self.std = std
+        self.channel_wise = channel_wise
+        
     def __call__(self, x:np.ndarray):
         if (self.mean is None) or (self.std is None):
-            return (x - x.mean())/x.std()
+            if self.channel_wise:
+                return (x - x.mean(-1, keepdims=True))/x.std(-1, keepdims=True)
+            else:
+                return (x - x.mean())/x.std()
         else:
             return (x - self.mean)/self.std
 

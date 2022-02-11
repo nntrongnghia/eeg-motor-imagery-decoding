@@ -98,6 +98,9 @@ class IV2aDataModule(pl.LightningDataModule):
         self.test_transform = test_transform
         self.shuffle = True
         self.num_workers = num_workers
+        self.trainset = None
+        self.valset = None
+        self.testset = None
         # decrease this factor if you have problem with RAM or CPU
         self.prefetch_factor = 16
 

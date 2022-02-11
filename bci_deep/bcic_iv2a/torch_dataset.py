@@ -256,12 +256,14 @@ class IV2aDataset(Dataset):
         x = sample["x"]  # (C, T)
         y = sample["y"]
         s = int(sample_filename[1:3])
+        # double check 
+        assert s in self.subject_list
 
         if self.transform is not None:
             x = self.transform(x)
         
         xfb = self.filter.np_forward(x) # (C, B, T)
-        xfb = np.moveaxis(xfb, 1, 0)
+        xfb = np.moveaxis(xfb, 1, 0) # (B, C, T)
         xfb = torch.tensor(xfb)
 
         sample = {
