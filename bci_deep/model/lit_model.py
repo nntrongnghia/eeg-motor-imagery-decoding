@@ -11,15 +11,31 @@ import torch.nn as nn
 import torch.nn.functional as F
 from bci_deep.model import HDNN
 from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
+from functools import partial
+
+def softmax_focal_loss(pred_logits, targets, gamma=2, alpha=0.25):
+    p = torch.softmax(pred_logits, -1)
+    targets = F.one_hot(targets.to(torch.int64), num_classes=pred_logits.shape[-1]).to(torch.float)
+    ce_loss = F.binary_cross_entropy_with_logits(
+        pred_logits, targets, reduction="none"
+    )
+    p_t = p * targets + (1 - p) * (1 - targets)
+    loss = ce_loss * ((1 - p_t) ** gamma)
+
+    if alpha >= 0:
+        alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
+        loss = alpha_t * loss
+
+    return loss.mean()*10
 
 
 class LitModel(pl.LightningModule):
     def __init__(self, model_class: nn.Module,
-                 model_kwargs={},
                  nb_classes=4,
                  lr=0.001,
                  cls_weights: torch.Tensor = None,
-                 **kwargs) -> None:
+                 use_focal_loss=False,
+                 **model_kwargs) -> None:
         """A Lightning Module warps the model and train/val/test steps
 
         Parameters
@@ -43,13 +59,16 @@ class LitModel(pl.LightningModule):
         self.save_hyperparameters()
         self.lr = lr
         self.model_class = model_class
-        self.model_kwargs = model_kwargs
+        model_kwargs["nb_classes"] = nb_classes
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
-        if cls_weights is None:
-            self.criterion = nn.CrossEntropyLoss()
+        if use_focal_loss:
+            self.criterion = softmax_focal_loss
         else:
-            self.criterion = nn.CrossEntropyLoss(cls_weights)
+            if cls_weights is None:
+                self.criterion = nn.CrossEntropyLoss()
+            else:
+                self.criterion = nn.CrossEntropyLoss(cls_weights)
 
         # Train metrics
         self.train_kappa = CohenKappa(nb_classes)
@@ -57,6 +76,7 @@ class LitModel(pl.LightningModule):
         # self.train_confusion = ConfusionMatrix(nb_classes)
 
         # Validation metrics
+        self.max_val_kappa = 0
         self.val_kappa = CohenKappa(nb_classes)
         self.val_accuracy = Accuracy()
         # self.val_confusion = ConfusionMatrix(nb_classes)
@@ -199,12 +219,17 @@ class LitModel(pl.LightningModule):
     def validation_epoch_end(self, outputs):
         self.log("val_kappa", self.val_kappa.compute())
         self.log("val_accuracy", self.val_accuracy.compute())
+        kappa = float(self.val_kappa.compute().cpu().numpy())
+        if kappa > self.max_val_kappa:
+            self.max_val_kappa = kappa
+        self.log("max_val_kappa", self.max_val_kappa)
+        
         if self.trainer._progress_bar_callback is None:
             loss = float(torch.stack(outputs).mean().detach().cpu().numpy())
             acc = float(self.val_accuracy.compute().cpu().numpy())
-            kappa = float(self.val_kappa.compute().cpu().numpy())
             logging.info(
                 f"Epoch {self.current_epoch}, val_loss={loss:.3f}, val_kappa={kappa:.3f}, val_acc={acc:.3f}")
+        
         self.val_kappa.reset()
         self.val_accuracy.reset()
 

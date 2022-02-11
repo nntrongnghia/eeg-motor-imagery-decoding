@@ -120,11 +120,17 @@ class UniformNoise:
         return x + noise
 
 
-class Standardize:
-    """Standardize the signal to get mean=0 and std=1
+class Normalize:
+    """Normalize signal by mean and std
     """
+    def __init__(self, mean=None, std=None):
+        self.mean = mean
+        self.std = std
     def __call__(self, x:np.ndarray):
-        return (x - x.mean())/x.std()
+        if (self.mean is None) or (self.std is None):
+            return (x - x.mean())/x.std()
+        else:
+            return (x - self.mean)/self.std
 
 
 class RandomScale:

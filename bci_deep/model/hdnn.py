@@ -134,11 +134,13 @@ class Backbone(nn.Module):
 
 
 class HDNN(nn.Module):
-    def __init__(self, input_dims: Tuple, nb_segments=4,
+    def __init__(self, nb_segments=4,
                  m_filters=2, cnn1_out_channels=4, 
                  lstm_hidden_size=64, lstm_output_size=32,
                  lstm_input_size=32, lstm_num_layers=3,
-                 p_dropout=0.2, head_hidden_dim=512, nb_classes=4, **kwargs) -> None:
+                 p_dropout=0.2, head_hidden_dim=512, 
+                 nb_classes=4, nb_bands=16,
+                 trainable_csp=True, **kwargs) -> None:
         """Hybrid Deep Neural Network from https://doi.org/10.1016/j.bspc.2020.102144
 
         Parameters
@@ -172,7 +174,8 @@ class HDNN(nn.Module):
         
         super().__init__()
         self.nb_segments = nb_segments
-        self.ovr_csp = OVR_CSP(nb_classes, m_filters)
+        input_dims = (nb_segments, 1, nb_bands, 2*m_filters*nb_classes)
+        self.ovr_csp = OVR_CSP(nb_classes, m_filters, trainable_csp, nb_bands)
         self.backbone = Backbone(input_dims, cnn1_out_channels,
                                  lstm_hidden_size, lstm_output_size,
                                  lstm_input_size, lstm_num_layers, p_dropout)
@@ -193,8 +196,12 @@ class HDNN(nn.Module):
         """Initialize weights using Normal Distribution of mean 0 and std 0.1
         based on the paper
         """
+        std = 0.01
+        a = -3*std
+        b = 3*std
         for param in self.parameters():
-            nn.init.normal_(param, std=0.1)
+            # nn.init.normal_(param, std=0.1)
+            nn.init.trunc_normal_(param, std=std, a=a, b=b)
 
     @torch.no_grad()
     def initialize_csp(self, xfb:np.ndarray, y:np.ndarray, on_gpu=False):

@@ -149,3 +149,5 @@ docs
 lightning_logs
 .vscode
 checkpoints
+results
+ray_results

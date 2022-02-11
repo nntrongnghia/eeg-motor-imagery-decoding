@@ -7,4 +7,4 @@ pytorch_lightning
 scikit_learn
 scipy
 seaborn
-
+ray[tune]

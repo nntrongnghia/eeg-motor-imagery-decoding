@@ -16,6 +16,8 @@ class OVR_CSP(nn.Module):
             Number of classes
         m_filters : int, optional
             Number of CSP filters, by default 2
+        nb_bands: int, optional
+            Number of Filter Bank passbands
         """
         super().__init__()
         self.trainable = trainable
@@ -54,8 +56,8 @@ class OVR_CSP(nn.Module):
         B = self.nb_bands
         C = self.nb_channels
         classes = np.unique(y_labels)
-        assert B == x_fb.shape[0]
-        assert C == x_fb.shape[2]
+        assert B == x_fb.shape[0], f"B={B}, x_fb.shape[0]={x_fb.shape[0]}"
+        assert C == x_fb.shape[2], f"C={B}, x_fb.shape[2]={x_fb.shape[2]}"
         assert len(classes) == self.nb_classes, \
             f"y_labels should contain {self.nb_classes} classes"
         self.csps = [[CSP(self.m_filters) for _ in range(self.nb_classes)] for _ in range(B)]
