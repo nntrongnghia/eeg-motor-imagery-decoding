@@ -65,8 +65,13 @@ class LitModel(pl.LightningModule):
 
         # Metrics
         self.max_val_kappa = 0
+        self.train_kappa = CohenKappa(nb_classes)
+        self.train_accuracy = Accuracy()
+
         self.kappa = CohenKappa(nb_classes)
         self.accuracy = Accuracy()
+
+
         self.confusion = ConfusionMatrix(nb_classes)
 
     @torch.no_grad()
@@ -133,8 +138,8 @@ class LitModel(pl.LightningModule):
         self.log("train_loss", loss, on_step=False,
                  on_epoch=True, prog_bar=True, logger=True)
         # metrics
-        self.kappa(ypred, y)
-        self.accuracy(ypred, y)
+        self.train_kappa(ypred, y)
+        self.train_accuracy(ypred, y)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -191,18 +196,18 @@ class LitModel(pl.LightningModule):
             del df_cm
 
     def training_epoch_end(self, outputs) -> None:
-        self.log("train_kappa", self.kappa.compute())
-        self.log("train_accuracy", self.accuracy.compute())
+        self.log("train_kappa", self.train_kappa.compute())
+        self.log("train_accuracy", self.train_accuracy.compute())
         if self.trainer._progress_bar_callback is None:
             loss = float(torch.stack(
                 [out["loss"] for out in outputs]
             ).mean().detach().cpu().numpy())
-            acc = float(self.accuracy.compute().cpu().numpy())
-            kappa = float(self.kappa.compute().cpu().numpy())
+            acc = float(self.train_accuracy.compute().cpu().numpy())
+            kappa = float(self.train_kappa.compute().cpu().numpy())
             logging.info(
                 f"Epoch {self.current_epoch}, train_loss={loss:.3f}, train_kappa={kappa:.3f}, train_acc={acc:.3f}")
-        self.kappa.reset()
-        self.accuracy.reset()
+        self.train_kappa.reset()
+        self.train_accuracy.reset()
 
     def validation_epoch_end(self, outputs):
         self.log("val_kappa", self.kappa.compute())

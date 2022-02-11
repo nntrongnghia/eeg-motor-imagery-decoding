@@ -45,7 +45,7 @@ def get_argument_parser():
     return parser
 
 
-def train_lit_model(config:ConfigDict, args, num_epochs=1000, num_gpus:int=0):
+def train_lit_model(config:ConfigDict, args, num_epochs=200, num_gpus:int=0):
 
     data_dir = os.path.expanduser(args.data_dir)
     lit_model_class = getattr(bci_deep.model, args.lightning_module)
@@ -83,7 +83,7 @@ def train_lit_model(config:ConfigDict, args, num_epochs=1000, num_gpus:int=0):
 
 def tune_mnist_asha(config, args, 
                     num_samples=10, 
-                    num_epochs=1000, 
+                    num_epochs=200, 
                     gpus_per_trial=0, 
                     local_dir="./ray_results"):
 

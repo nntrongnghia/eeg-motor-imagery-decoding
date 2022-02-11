@@ -70,11 +70,12 @@ def train_single_subject(args, config, expe_name, lit_model):
                                             logger=tb_logger,
                                             callbacks=callbacks,
                                             **config.trainer_kwargs)
-    # trainer.fit(lit_model, datamodule=datamodule_finetune)
     trainer.fit(lit_model,
                 single_subject_data.train_dataloader(),
                 single_subject_data.test_dataloader())
     lit_model = lit_model.load_from_checkpoint(finetune_ckpt_path)
+    # test
+    trainer.test(lit_model, single_subject_data.test_dataloader())
     return lit_model
 
 
@@ -115,6 +116,7 @@ def export_config_to_yaml(config, expe_name):
 
 def main(args):
     # Build experiment config from config name
+    logging.info(f"Load config {args.config}")
     config = getattr(config_collection, args.config)()
     # Set the experiment name
     expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(
@@ -135,7 +137,7 @@ def main(args):
     else:
         logging.info(f"Load checkpoint: {args.test_ckpt}")
         lit_model = lit_model.load_from_checkpoint(args.test_ckpt)
-    test_model(args, config, lit_model)
+        test_model(args, config, lit_model)
 
 
 if __name__ == "__main__":
