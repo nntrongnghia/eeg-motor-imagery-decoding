@@ -12,6 +12,7 @@ from bci_deep.model import HDNN
 from torchvision.transforms import Compose
 import bci_deep.model.config as C
 import bci_deep.model.losses as L
+from functools import partial
 
 def hdnn_lr_bs():
     cfg = C.hdnn_all_da()
@@ -22,14 +23,17 @@ def hdnn_lr_bs():
 
 def hdnn_tune():
     cfg = C.hdnn_all_da()
+    cfg.p_dropout = 0.1
+    cfg.cnn1_out_channels = 8
     with cfg.ignore_type():
-        cfg.lr = tune.loguniform(1e-4, 1e-2)
-        cfg.batch_size = tune.choice([4, 16, 24, 64])
-        cfg.p_dropout = tune.uniform(0.0, 0.5)
-        cfg.cnn1_out_channels = tune.choice([2, 4, 8, 16])
-        cfg.nb_bands = tune.randint(9, 17)
-        cfg.loss_fn = tune.choice([
-            L.ce_loss,
-            L.SmoothCECenterLoss()
-        ])
+        cfg.lr = tune.loguniform(1e-5, 1e-3)
+        cfg.batch_size = tune.choice([2, 4, 8])
+        cfg.m_filters = tune.randint(1, 10)
+    return cfg
+
+def hdnn_tune_v2():
+    cfg = C.hdnn_all_da_v2()
+    with cfg.ignore_type():
+        cfg.smooth_factor = tune.uniform(0, 1)
+        cfg.loss_fn = partial(L.ce_loss, smooth=cfg.smooth_factor)
     return cfg

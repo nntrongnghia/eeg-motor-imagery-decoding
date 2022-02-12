@@ -19,9 +19,9 @@ def softmax_focal_loss(pred_logits, targets, gamma=2, alpha=0.25):
 
     return loss.mean()*10
 
-def ce_loss(m_outputs, targets):
+def ce_loss(m_outputs, targets, smooth=0.0):
     logits = m_outputs["logits"]    
-    return F.cross_entropy(logits, targets)
+    return F.cross_entropy(logits, targets, label_smoothing=smooth)
 
 
 class SmoothCECenterLoss:

@@ -79,12 +79,12 @@ class Backbone(nn.Module):
             nn.Conv2d(c1, c1*2, 3, padding="same"),
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
+
             nn.Conv2d(c1*2, c1*4, 3, padding="same"),
-            # nn.Dropout2d(p_dropout),
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
+            
             nn.Conv2d(c1*4, c1*8, 3, padding="same"),
-            # nn.Dropout2d(p_dropout),
             nn.LeakyReLU(),
             nn.MaxPool2d(2, 2),
         )
@@ -124,6 +124,7 @@ class Backbone(nn.Module):
         BS, L, _, B, M = x.shape
         cnn1_out = self.cnn1(x.reshape(-1, 1, B, M))
         spatial_ft = self.cnn2(cnn1_out)
+
         tokens = self.fc1(cnn1_out.reshape(BS, L, -1))
         temporal_ft, _ = self.lstm(tokens)
 
@@ -179,11 +180,14 @@ class HDNN(nn.Module):
             nn.Linear(self.backbone.output_dims, head_hidden_dim),
             nn.LeakyReLU(),
             nn.Dropout(p_dropout),
+
             nn.Linear(head_hidden_dim, head_hidden_dim),
             nn.LeakyReLU(),
             nn.Dropout(p_dropout),
+
             nn.Linear(head_hidden_dim, 32),
             nn.LeakyReLU(),
+            
             nn.Linear(32, nb_classes),
         )
         self.initialize_weights()

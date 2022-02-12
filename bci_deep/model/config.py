@@ -136,3 +136,19 @@ def hdnn_all_da():
     cfg.test_transform = T.Standardize()
     cfg.p_dropout = 0.2
     return cfg
+
+def hdnn_all_da_v2():
+    cfg = hdnn_no_da()
+    cfg.train_transform = Compose([
+        T.UniformNoise(),
+        T.Standardize(),
+        T.RandomScale(),
+        T.RandomFlip(),
+        T.RandomFrequencyShift(),
+    ])
+    cfg.test_transform = T.Standardize()
+    cfg.p_dropout = 0.07
+    cfg.lr = 0.0003
+    cfg.cnn1_out_channels = 16
+    cfg.batch_size = 4
+    return cfg
