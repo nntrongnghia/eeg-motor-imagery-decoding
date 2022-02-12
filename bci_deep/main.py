@@ -56,7 +56,7 @@ def train_single_subject(args, config, expe_name, lit_model):
     ckpt_name = f"s{args.subject}_finetune_best"
     finetune_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
     callbacks = [
-        EarlyStopping(monitor="val_kappa", mode="max", patience=50),
+        EarlyStopping(monitor="val_kappa", mode="max", patience=40),
         ModelCheckpoint(monitor="val_kappa", mode="max",
                         filename=ckpt_name,
                         dirpath=tb_logger.log_dir)]
@@ -86,7 +86,7 @@ def pretrain_cross_subjects(args, config, expe_name, lit_model):
     pretrain_ckpt_path = os.path.join(
         tb_logger.log_dir, ckpt_name+".ckpt")
     callbacks = [
-        EarlyStopping(monitor="val_loss", mode="min", patience=50),
+        EarlyStopping(monitor="val_loss", mode="min", patience=40),
         ModelCheckpoint(monitor="val_loss", mode="min",
                                 filename=ckpt_name,
                                 dirpath=tb_logger.log_dir)]

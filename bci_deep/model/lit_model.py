@@ -11,29 +11,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 from bci_deep.model import HDNN
 from torchmetrics import Accuracy, CohenKappa, ConfusionMatrix
-from functools import partial
+from bci_deep.model.losses import ce_loss
 
-def softmax_focal_loss(pred_logits, targets, gamma=2, alpha=0.25):
-    p = torch.softmax(pred_logits, -1)
-    targets = F.one_hot(targets.to(torch.int64), num_classes=pred_logits.shape[-1]).to(torch.float)
-    ce_loss = F.binary_cross_entropy_with_logits(
-        pred_logits, targets, reduction="none"
-    )
-    p_t = p * targets + (1 - p) * (1 - targets)
-    loss = ce_loss * ((1 - p_t) ** gamma)
-
-    if alpha >= 0:
-        alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
-        loss = alpha_t * loss
-
-    return loss.mean()*10
 
 
 class LitModel(pl.LightningModule):
     def __init__(self, model_class: nn.Module=HDNN,
                  nb_classes=4,
                  lr=0.001,
-                 loss_fn=nn.CrossEntropyLoss(),
+                 loss_fn=ce_loss,
                  **model_kwargs) -> None:
         """A Lightning Module warps the model and train/val/test steps
 
@@ -120,21 +106,23 @@ class LitModel(pl.LightningModule):
         self.model.finetune()
 
     def forward(self, x):
-        return self.model(x)
+        return self.model(x, return_dict=True)
 
     def predict_step(self, x):
-        logits = self.model(x)
+        m_outputs = self(x)
+        logits = m_outputs["logits"]
         ypred = torch.argmax(logits, -1)
         return ypred
 
     def training_step(self, batch, batch_idx):
         x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
         # inference
-        logits = self(x)
+        m_outputs = self(x)
+        logits = m_outputs["logits"]
         pred_scores = torch.softmax(logits, -1)
         ypred = torch.argmax(pred_scores, -1)
         # loss
-        loss = self.criterion(logits, y)
+        loss = self.criterion(m_outputs, y)
         self.log("train_loss", loss, on_step=False,
                  on_epoch=True, prog_bar=True, logger=True)
         # metrics
@@ -145,11 +133,12 @@ class LitModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
         # inference
-        logits = self(x)
+        m_outputs = self(x)
+        logits = m_outputs["logits"]
         pred_scores = torch.softmax(logits, -1)
         ypred = torch.argmax(pred_scores, -1)
         # loss
-        loss = self.criterion(logits, y)
+        loss = self.criterion(m_outputs, y)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.kappa(ypred, y)
@@ -159,11 +148,12 @@ class LitModel(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
         # inference
-        logits = self(x)
+        m_outputs = self(x)
+        logits = m_outputs["logits"]
         pred_scores = torch.softmax(logits, -1)
         ypred = torch.argmax(pred_scores, -1)
         # loss
-        loss = self.criterion(logits, y)
+        loss = self.criterion(m_outputs, y)
         self.log("test_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.kappa(ypred, y)

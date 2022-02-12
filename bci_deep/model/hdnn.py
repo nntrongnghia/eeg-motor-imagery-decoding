@@ -216,7 +216,7 @@ class HDNN(nn.Module):
             param.requires_grad = False
         
 
-    def forward(self, xfb: torch.Tensor, return_score=False) -> torch.Tensor:
+    def forward(self, xfb: torch.Tensor, return_dict=False) -> torch.Tensor:
         """HDNN forward
 
         Parameters
@@ -235,7 +235,7 @@ class HDNN(nn.Module):
         csp_ft = self.ovr_csp(xfbs)
         x = self.backbone(csp_ft.unsqueeze(-3))
         logits = self.head(x)
-        if return_score:
-            return torch.softmax(logits, dim=-1)
+        if return_dict:
+            return {"logits": logits, "features":x}
         else:
             return logits

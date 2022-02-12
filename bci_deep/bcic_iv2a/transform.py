@@ -150,7 +150,7 @@ class RandomScale:
         self.scale_range = scale_range
     
     def __call__(self, x:np.ndarray):
-        scale = random.uniform(*self.scale_range)
+        scale = np.random.uniform(*self.scale_range, [*x.shape[:-1], 1])
         return x*scale
 
 class RandomFlip:

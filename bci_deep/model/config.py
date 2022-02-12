@@ -9,6 +9,7 @@ from ml_collections import ConfigDict
 import bci_deep.bcic_iv2a.transform as T
 from bci_deep.model import HDNN
 from torchvision.transforms import Compose
+from bci_deep.model.losses import SmoothCECenterLoss
 
 def hdnn_no_da():
     cfg = ConfigDict()
@@ -31,7 +32,7 @@ def hdnn_no_da():
     cfg.lstm_input_size = 32
     cfg.lstm_num_layers = 3
     cfg.p_dropout = 0.2
-    cfg.head_hidden_dim = 128
+    cfg.head_hidden_dim = 512
 
     # LightningModule config
     cfg.lr = 0.001
@@ -125,7 +126,6 @@ def hdnn_base():
 
 def hdnn_all_da():
     cfg = hdnn_no_da()
-    # cfg.bar_augmentation = True
     cfg.train_transform = Compose([
         T.UniformNoise(),
         T.Standardize(),
@@ -134,4 +134,5 @@ def hdnn_all_da():
         T.RandomFrequencyShift(),
     ])
     cfg.test_transform = T.Standardize()
+    cfg.p_dropout = 0.2
     return cfg

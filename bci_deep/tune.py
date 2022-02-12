@@ -57,7 +57,7 @@ def train_lit_model(config:ConfigDict, args, num_epochs=200, num_gpus:int=0):
     single_subject_data.setup(stage="fit")
     single_subject_data.setup(stage="test")
 
-    lit_model.initialize_csp(single_subject_data.train_dataloader())
+    lit_model.initialize_csp(single_subject_data)
 
     logger = TensorBoardLogger(save_dir=tune.get_trial_dir(), name="", version=".")
 
@@ -89,7 +89,7 @@ def tune_mnist_asha(config, args,
 
     scheduler = ASHAScheduler(
         max_t=num_epochs,
-        grace_period=num_epochs,
+        grace_period=num_epochs//2,
         reduction_factor=2)
 
     reporter = CLIReporter(
