@@ -4,10 +4,9 @@ import scipy.signal as signal
 from scipy.signal import cheb2ord
 import torch
 import torch.nn as nn
-from torchaudio.functional import lfilter
 
 
-class FilterBank(nn.Module):
+class FilterBank:
     def __init__(self, fs, nb_bands=9, 
                  f_width=4.0, f_min=4.0, f_max=40.0, f_trans=2.0,
                  gpass=3.0, gstop=30.0, **kwargs):
@@ -71,24 +70,6 @@ class FilterBank(nn.Module):
         self.a_coeffs = torch.tensor(self.a_coeffs, requires_grad=False)
         self.b_coeffs = torch.tensor(self.b_coeffs, requires_grad=False)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Filter data by Filter Bank, use torch function
-        Note: this function maybe slower than np_forward
-
-        Parameters
-        ----------
-        eeg_data : torch.Tensor
-            EEG signals, shape (..., T)
-            T discrete time
-
-        Returns
-        -------
-        torch.Tensor
-            Filtered signals, shape (..., B, T)
-            B number of filter bands
-        """
-        x = x.unsqueeze(-2).repeat_interleave(self.B, -2)
-        return lfilter(x, self.a_coeffs, self.b_coeffs, clamp=False)
 
     def np_forward(self, x: np.ndarray) -> np.ndarray:
         """Filter data by Filter Bank, use numpy function
@@ -110,16 +91,3 @@ class FilterBank(nn.Module):
         b_coeffs = self.b_coeffs.numpy()
         xfb = [signal.lfilter(b, a, x) for a, b in zip(a_coeffs, b_coeffs)]
         return np.stack(xfb, -2)
-
-
-# test code
-if __name__ == "__main__":
-    from bci_deep.bcic_iv2a import IV2aReader
-
-    bci = IV2aReader("/home/nghia/dataset/BCI_IV_2a")
-    data = bci.read_file("A01T.gdf")
-    x = data["x_data"][:32]
-    y = data["y_labels"][:32]
-    fb = FilterBank(250)
-    xfb = fb(torch.tensor(x))
-    print(xfb.shape)

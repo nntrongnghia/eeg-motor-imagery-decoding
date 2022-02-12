@@ -30,10 +30,3 @@ def hdnn_tune():
         cfg.batch_size = tune.choice([2, 4, 8])
         cfg.m_filters = tune.randint(1, 10)
     return cfg
-
-def hdnn_tune_v2():
-    cfg = C.hdnn_all_da_v2()
-    with cfg.ignore_type():
-        cfg.smooth_factor = tune.uniform(0, 1)
-        cfg.loss_fn = partial(L.ce_loss, smooth=cfg.smooth_factor)
-    return cfg
