@@ -43,7 +43,7 @@ class IV2aDataset(Dataset):
             By default True
         nb_bands : int, optional
             Number of bands in Filter Bank, by default 9
-       f_width : float, optional
+        f_width : float, optional
             Bandwidth of passband filter in Filter Bank, in Hz
             By default 4
         f_min : float, optional
@@ -83,7 +83,10 @@ class IV2aDataset(Dataset):
             By default False
         """
         super().__init__()
-        self.filter = FilterBank(self.FS, nb_bands, f_width, f_min, f_max, f_trans, gpass, gstop)
+        if nb_bands > 0:
+            self.filter = FilterBank(self.FS, nb_bands, f_width, f_min, f_max, f_trans, gpass, gstop)
+        else:
+            self.filter = None
         self.tmin, self.tmax = tmin, tmax
         self.train = train
         self.include_subjects = include_subject
@@ -262,15 +265,17 @@ class IV2aDataset(Dataset):
         if self.transform is not None:
             x = self.transform(x)
         
-        xfb = self.filter.np_forward(x) # (C, B, T)
-        xfb = np.moveaxis(xfb, 1, 0) # (B, C, T)
-        xfb = torch.tensor(xfb)
-
         sample = {
             "y": y,
             "s": s,
-            "eeg": x
+            "eeg": x.astype(np.float32)
         }
         sample = ToTensor()(sample)
-        sample["eeg_fb"] = xfb.to(torch.float32)
+        
+        if self.filter is not None:
+            xfb = self.filter.np_forward(x) # (C, B, T)
+            xfb = np.moveaxis(xfb, 1, 0) # (B, C, T)
+            xfb = torch.tensor(xfb)
+            sample["eeg_fb"] = xfb.to(torch.float32)
+
         return sample

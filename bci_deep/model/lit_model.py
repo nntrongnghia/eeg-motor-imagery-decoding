@@ -17,6 +17,7 @@ from bci_deep.model.losses import ce_loss
 
 class LitModel(pl.LightningModule):
     def __init__(self, model_class: nn.Module=HDNN,
+                 input_key="eeg_fb",
                  nb_classes=4,
                  lr=0.001,
                  loss_fn=ce_loss,
@@ -48,6 +49,7 @@ class LitModel(pl.LightningModule):
         self.model = model_class(**model_kwargs)
         self.nb_classes = nb_classes
         self.criterion = loss_fn
+        self.input_key = input_key
 
         # Metrics
         self.max_val_kappa = 0
@@ -56,7 +58,6 @@ class LitModel(pl.LightningModule):
 
         self.kappa = CohenKappa(nb_classes)
         self.accuracy = Accuracy()
-
 
         self.confusion = ConfusionMatrix(nb_classes)
 
@@ -74,26 +75,27 @@ class LitModel(pl.LightningModule):
             y : np.ndarray
                 labels, shape (N,)
         """
-        dataset = datamodule.trainset
-        dataset.transform = datamodule.test_transforms
-        
-        B, C, T = dataset[0]["eeg_fb"].shape
+        if self.model.has_csp:
+            dataset = datamodule.trainset
+            dataset.transform = datamodule.test_transforms
+            
+            B, C, T = dataset[0]["eeg_fb"].shape
 
-        if len(dataset) > 512:
-            sample_idx = np.random.randint(0, len(dataset), 512)
-        else:
-            sample_idx = list(range(len(dataset)))
+            if len(dataset) > 512:
+                sample_idx = np.random.randint(0, len(dataset), 512)
+            else:
+                sample_idx = list(range(len(dataset)))
 
-        xfb = []
-        y = []
-        for idx in sample_idx:
-            sample = dataset[idx]
-            xfb.append(sample["eeg_fb"])
-            y.append(sample["y"])
+            xfb = []
+            y = []
+            for idx in sample_idx:
+                sample = dataset[idx]
+                xfb.append(sample["eeg_fb"])
+                y.append(sample["y"])
 
-        xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy() # (B, N, C, T)
-        y = torch.stack(y).cpu().numpy()
-        self.model.initialize_csp(xfb, y)
+            xfb = torch.cat(xfb).reshape(-1, B, C, T).moveaxis(1, 0).cpu().numpy() # (B, N, C, T)
+            y = torch.stack(y).cpu().numpy()
+            self.model.initialize_csp(xfb, y)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -115,7 +117,7 @@ class LitModel(pl.LightningModule):
         return ypred
 
     def training_step(self, batch, batch_idx):
-        x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
+        x, y = batch[self.input_key], batch["y"].reshape(-1,)
         # inference
         m_outputs = self(x)
         logits = m_outputs["logits"]
@@ -131,7 +133,7 @@ class LitModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
+        x, y = batch[self.input_key], batch["y"].reshape(-1,)
         # inference
         m_outputs = self(x)
         logits = m_outputs["logits"]
@@ -146,7 +148,7 @@ class LitModel(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        x, y = batch["eeg_fb"], batch["y"].reshape(-1,)
+        x, y = batch[self.input_key], batch["y"].reshape(-1,)
         # inference
         m_outputs = self(x)
         logits = m_outputs["logits"]

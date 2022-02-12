@@ -1,7 +1,7 @@
 """Transformation to apply on EEG signals
 """
 import random
-from typing import Dict, Union
+from typing import Dict, List, Union
 import torch
 import torchvision.transforms as T
 import numpy as np
@@ -196,3 +196,12 @@ class RandomFrequencyShift:
         shifted_x = hilbert(padded_x)*freq_shift
         shifted_x = shifted_x.real
         return shifted_x[..., :x.shape[-1]]
+
+
+class RandomChoice:
+    def __init__(self, da_list:List):
+        self.da_list = da_list
+
+    def __call__(self, x:np.ndarray):
+        da_fn = random.choice(self.da_list)
+        return da_fn(x)

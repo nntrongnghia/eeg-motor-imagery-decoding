@@ -75,10 +75,8 @@ Each experiment can be configured easily by creating/modifying functions in `bci
 For details of each arguments, check the docstrings of corresponding classes.
 
 ### Train and test
-Training with transfer learning needs two step: pre-training and fine-tune training. We merged datasets "T" from all the subjects except the subject, who we want to evaluate, to pre-train the model, then we used the datasets "T" of the absent subject in pre-training process to fine-tune. For example, if we want to train the model for the subject 8, we merge datasets "T" from subject 1∼7 and 9 to pre-train, then datasets "T" from subject 8 is used in fine-tune.
-
 ```
-python bci_deep/main.py DATA_DIR SUBJECT [--config CONFIG_NAME] [--gpus 1] [--no_pretrain]
+python bci_deep/main.py DATA_DIR SUBJECT [--config CONFIG_NAME] [--gpus 1] [--use_transfer_learning]
 ```
 
 Where `DATA_DIR` is the path to the dataset, `SUBJECT` is either `01`, `02`, etc. for the subject A01, A02, etc. respectively. 
@@ -86,7 +84,9 @@ Where `DATA_DIR` is the path to the dataset, `SUBJECT` is either `01`, `02`, etc
 Options:
 - To run on GPU, add the option `--gpus 1`
 - To run training with a specific configuration, add `--config CONFIG_NAME` with `CONFIG_NAME` is the name of a function returning `ml_collection.ConfigDict` defined in `bci_deep/model/config.py`.
-- To skip the pretraining and train the whole model directly on data of the subject we want to evaluate, add `--no_pretrain`
+- To train model using transfer learning, add `--use_transfer_learning`
+
+Training with transfer learning needs two step: pre-training and fine-tune training. We merged datasets "T" from all the subjects except the subject, who we want to evaluate, to pre-train the model, then we used the datasets "T" of the absent subject in pre-training process to fine-tune. For example, if we want to train the model for the subject 8, we merge datasets "T" from subject 1∼7 and 9 to pre-train, then datasets "T" from subject 8 is used in fine-tune.
 
 The `main.py` runs training with Early Stopping, while training, just grab a coffee or take some air :)
 

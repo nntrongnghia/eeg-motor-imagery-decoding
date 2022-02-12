@@ -39,16 +39,16 @@ def split_n_segments(x:torch.Tensor, nb_segments:int=4) -> torch.Tensor:
 class Backbone(nn.Module):
     def __init__(self, input_dims: Tuple, cnn1_out_channels=4,
                  lstm_hidden_size=64, lstm_output_size=32,
-                 lstm_input_size=32, lstm_num_layers=3, p_dropout=0.2) -> None:
+                 lstm_input_size=32, lstm_num_layers=3, **kwargs) -> None:
         """Temporal and spatial feature extration using CNN and LSTM
 
         Parameters
         ----------
         input_dims : Tuple
-            Input dimensions (L, 1, B, M)
+            Input dimensions (L, 1, C, T)
             L: sequence length
-            B: nb filter bands
-            M: nb of features
+            C: eeg channels
+            T: time length
         cnn1_out_channels : int, optional
             Output dimension of CNN1, by default 4
         lstm_hidden_size : int, optional
@@ -66,13 +66,14 @@ class Backbone(nn.Module):
         
         super().__init__()
         c1 = cnn1_out_channels  # c1 for short
-        L, _, B, M = input_dims
+        self.input_dims = input_dims
+        L, _, C, T = input_dims
         self.cnn1 = nn.Sequential(
             nn.Conv2d(1, c1, 5, padding="same"),
             nn.ReLU()
         )
         self.fc1 = nn.Sequential(
-            nn.Linear(c1*B*M, lstm_input_size),
+            nn.Linear(c1*C*T, lstm_input_size),
             nn.ReLU()
         )
         self.cnn2 = nn.Sequential(
@@ -98,8 +99,8 @@ class Backbone(nn.Module):
             lstm_output_size = lstm_hidden_size
 
         cnn2_out_shape = (
-            max(B // 8, 1), 
-            max(M // 8, 1)
+            max(C // 8, 1), 
+            max(T // 8, 1)
         )
         cnn2_out_res = cnn2_out_shape[0]*cnn2_out_shape[1]
         self.output_dims = L*(8*c1*cnn2_out_res + lstm_output_size)
@@ -112,8 +113,7 @@ class Backbone(nn.Module):
         Parameters
         ----------
         x : torch.Tensor
-            EEG features from OVR-FBCSP
-            shape (bs, L, 1, B, M)
+            shape (bs, L, 1, C, T)
 
         Returns
         -------
@@ -134,14 +134,14 @@ class Backbone(nn.Module):
 
 
 
-class HDNN(nn.Module):
-    def __init__(self, nb_segments=4,
-                 m_filters=2, cnn1_out_channels=4, 
-                 lstm_hidden_size=64, lstm_output_size=32,
+class NoFilterHDNN(nn.Module):
+    def __init__(self, nb_segments=4, nb_eeg_channels=22,
+                 time_length=1001, cnn1_out_channels=4, 
+                 lstm_hidden_size=32, lstm_output_size=0,
                  lstm_input_size=32, lstm_num_layers=3,
                  p_dropout=0.2, head_hidden_dim=512, 
-                 nb_classes=4, nb_bands=16,
-                 trainable_csp=True, **kwargs) -> None:
+                 nb_classes=4, 
+                 **kwargs) -> None:
         """Hybrid Deep Neural Network from https://doi.org/10.1016/j.bspc.2020.102144
 
         Parameters
@@ -170,13 +170,16 @@ class HDNN(nn.Module):
         """
         
         super().__init__()
-        self.has_csp = True
+        self.has_csp = False
         self.nb_segments = nb_segments
-        input_dims = (nb_segments, 1, nb_bands, 2*m_filters*nb_classes)
-        self.ovr_csp = OVR_CSP(nb_classes, m_filters, trainable_csp, nb_bands)
-        self.backbone = Backbone(input_dims, cnn1_out_channels,
+        self.T = time_length
+        self.C = nb_eeg_channels
+
+        split_time_length = (self.T + nb_segments - self.T % nb_segments)//nb_segments
+        backbone_input_dims = (nb_segments, 1, nb_eeg_channels, split_time_length)
+        self.backbone = Backbone(backbone_input_dims, cnn1_out_channels,
                                  lstm_hidden_size, lstm_output_size,
-                                 lstm_input_size, lstm_num_layers, p_dropout)
+                                 lstm_input_size, lstm_num_layers)
         self.head = nn.Sequential(
             nn.Linear(self.backbone.output_dims, head_hidden_dim),
             nn.ReLU(),
@@ -199,19 +202,6 @@ class HDNN(nn.Module):
         for param in self.parameters():
             nn.init.normal_(param, std=0.1)
 
-    @torch.no_grad()
-    def initialize_csp(self, xfb:np.ndarray, y:np.ndarray, on_gpu=False):
-        """Initialize CSP transformation matrix
-
-        Parameters
-        ----------
-        x : np.ndarray
-            Filtered EEG signals, shape (B, N, C, T)
-            B filter bands, N trials, C channels, T time
-        y : np.ndarray
-            labels, shape (N,)
-        """
-        self.ovr_csp.fit(xfb, y)
 
     def finetune(self):
         """Freeze the backbone for transfer learning
@@ -220,13 +210,13 @@ class HDNN(nn.Module):
             param.requires_grad = False
         
 
-    def forward(self, xfb: torch.Tensor, return_dict=False) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, return_dict=False) -> torch.Tensor:
         """HDNN forward
 
         Parameters
         ----------
         x : torch.Tensor
-            Filtered EEG signals, shape (N, B, C, T)
+            Filtered EEG signals, shape (N, C, T)
             N trials, B filter bands, C channels, T time
 
         Returns
@@ -235,11 +225,21 @@ class HDNN(nn.Module):
             classification softmax scores
             shape (N, nb_classes)
         """
-        xfbs = split_n_segments(xfb, self.nb_segments).moveaxis(0, 1) # (N, L, B, C, T)
-        csp_ft = self.ovr_csp(xfbs)
-        x = self.backbone(csp_ft.unsqueeze(-3))
+        assert x.shape[-1] == self.T
+        assert x.shape[-2] == self.C
+        split_x = split_n_segments(x, self.nb_segments).moveaxis(0, 1) # (N, L, C, T)
+        split_x = split_x.unsqueeze(-3) # (N, L, 1, C, T)
+        x = self.backbone(split_x)
         logits = self.head(x)
         if return_dict:
             return {"logits": logits, "features":x}
         else:
             return logits
+
+
+# test code
+if __name__ == "__main__":
+    model = NoFilterHDNN()
+    x = torch.rand((4, 22, 1001))
+    y = model(x)
+    print("Done")
