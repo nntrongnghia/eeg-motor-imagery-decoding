@@ -40,6 +40,7 @@ def get_argument_parser():
                         help="Name of the Lightning Module subclass. Default: `LitModel`")
     parser.add_argument("--logdir", type=str, default="lightning_logs",
                         help="Directory to save Tensorboard logging")
+    parser.add_argument("--disable_early_stopping", action="store_true")
     return parser
 
 
@@ -58,10 +59,11 @@ def train_single_subject(args, config, expe_name, lit_model):
     ckpt_name = f"s{args.subject}_finetune_best"
     finetune_ckpt_path = os.path.join(tb_logger.log_dir, ckpt_name+".ckpt")
     callbacks = [
-        EarlyStopping(monitor="val_kappa", mode="max", patience=40),
         ModelCheckpoint(monitor="val_kappa", mode="max",
                         filename=ckpt_name,
                         dirpath=tb_logger.log_dir)]
+    if not args.disable_early_stopping:
+        callbacks += [EarlyStopping(monitor="val_kappa", mode="max", patience=40)]
     single_subject_data = IV2aDataModule(args.data_dir,
                                          include_subject=[args.subject], **config,
                                          overwrite_sample=args.overwrite_sample)
@@ -88,10 +90,11 @@ def pretrain_cross_subjects(args, config, expe_name, lit_model):
     pretrain_ckpt_path = os.path.join(
         tb_logger.log_dir, ckpt_name+".ckpt")
     callbacks = [
-        EarlyStopping(monitor="val_loss", mode="min", patience=40),
-        ModelCheckpoint(monitor="val_loss", mode="min",
-                                filename=ckpt_name,
-                                dirpath=tb_logger.log_dir)]
+        ModelCheckpoint(monitor="val_kappa", mode="max",
+                        filename=ckpt_name,
+                        dirpath=tb_logger.log_dir)]
+    if not args.disable_early_stopping:
+        callbacks += [EarlyStopping(monitor="val_kappa", mode="max", patience=40)]
     cross_subject_data = IV2aDataModule(args.data_dir,
                                         exclude_subject=[args.subject], **config,
                                         overwrite_sample=args.overwrite_sample)

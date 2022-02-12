@@ -90,13 +90,6 @@ def hdnn_norm_no_da():
     cfg.test_transform = T.Standardize()
     return cfg
 
-def hdnn_norm_cls_weights():
-    cfg = hdnn_no_da()
-    cfg.train_transform = T.Standardize()
-    cfg.test_transform = T.Standardize()
-    w = torch.tensor([1, 10, 1, 10], dtype=torch.float32)
-    cfg.cls_weights = w/w.sum()
-    return cfg
 
 def hdnn_norm_flip():
     cfg = hdnn_no_da()
@@ -151,17 +144,6 @@ def hdnn_norm_bar():
     cfg.test_transform = T.Standardize()
     return cfg
 
-def hdnn_base():
-    cfg = hdnn_no_da()
-    cfg.train_transform = Compose([
-        T.Standardize(),
-        T.RandomScale(),
-        T.RandomFlip(),
-        T.RandomFrequencyShift(),
-    ])
-    cfg.test_transform = T.Standardize()
-    return cfg
-
 
 def hdnn_all_da():
     cfg = hdnn_no_da()
@@ -180,7 +162,6 @@ def hdnn_no_da_no_dropout():
     cfg.p_dropout = 0.0
     return cfg
 
-
 def hdnn_all_da_no_dropout():
     cfg = hdnn_all_da()
     cfg.p_dropout = 0.0
@@ -198,11 +179,10 @@ def hdnn_random_da():
         ])
     ])
     cfg.test_transform = T.Standardize()
-    cfg.p_dropout = 0.2
     return cfg
 
 
-def hdnn_random_da():
+def hdnn_random_da_tuned():
     cfg = hdnn_no_da()
     cfg.train_transform = Compose([
         T.Standardize(),
