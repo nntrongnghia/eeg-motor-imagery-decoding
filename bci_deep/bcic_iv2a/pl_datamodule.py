@@ -89,8 +89,6 @@ class IV2aDataModule(pl.LightningDataModule):
             "exclude_subject": exclude_subject,
             "tmin": tmin,
             "tmax": tmax,
-            "overwrite_sample": overwrite_sample,
-            "bar_augmentation": bar_augmentation
         }
         self.batch_size = batch_size
         self.train_ratio = train_ratio

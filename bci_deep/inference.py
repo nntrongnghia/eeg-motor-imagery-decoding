@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from bci_deep.bcic_iv2a.data_reader import IV2aReader
+from bci_deep.bcic_iv2a.data_reader import IV2aGdfReader
 
 import bci_deep.model.config as config_collection
 import bci_deep.model
@@ -41,7 +41,7 @@ def main(args):
     lit_model = lit_model_class(**config)
     lit_model = lit_model.load_from_checkpoint(args.ckpt)
     # Read gdf file
-    iv2a = IV2aReader()
+    iv2a = IV2aGdfReader()
     data = iv2a.read_file(args.gdf, matfile=args.label, tmin=config.tmin, tmax=config.tmax)
     eeg = data["x_data"] # (N, C, T)
     # Preprocess data

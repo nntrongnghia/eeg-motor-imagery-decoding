@@ -125,7 +125,7 @@ class LitModel(pl.LightningModule):
         ypred = torch.argmax(pred_scores, -1)
         # loss
         loss = self.criterion(m_outputs, y)
-        self.log("train_loss", loss, on_step=False,
+        self.log("train_loss", loss, on_step=True,
                  on_epoch=True, prog_bar=True, logger=True)
         # metrics
         self.train_kappa(ypred, y)

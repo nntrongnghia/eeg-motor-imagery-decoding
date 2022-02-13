@@ -200,7 +200,7 @@ class NoFilterHDNN(nn.Module):
         based on the paper
         """
         for param in self.parameters():
-            nn.init.normal_(param, std=0.1)
+            torch.nn.init.trunc_normal_(param, std=0.1, a=-0.2, b=0.2)
 
 
     def finetune(self):
@@ -208,6 +208,8 @@ class NoFilterHDNN(nn.Module):
         """
         for param in self.backbone.parameters():
             param.requires_grad = False
+        for param in self.head.parameters():
+            torch.nn.init.trunc_normal_(param, std=0.1, a=-0.2, b=0.2)
         
 
     def forward(self, x: torch.Tensor, return_dict=False) -> torch.Tensor:

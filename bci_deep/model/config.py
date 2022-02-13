@@ -32,8 +32,9 @@ def hdnn_no_da():
     cfg.lstm_output_size = 0 # if 0, output dim = hidden dim
     cfg.lstm_input_size = 32
     cfg.lstm_num_layers = 3
-    cfg.p_dropout = 0.2
+    cfg.p_dropout = 0.1
     cfg.head_hidden_dim = 512
+    cfg.trainable_csp = False
 
     # LightningModule config
     cfg.input_key = "eeg_fb"
@@ -69,7 +70,7 @@ def no_filter_hdnn_no_da():
     cfg.lstm_output_size = 0 # if 0, output dim = hidden dim
     cfg.lstm_input_size = 32
     cfg.lstm_num_layers = 3
-    cfg.p_dropout = 0.2
+    cfg.p_dropout = 0.1
     cfg.head_hidden_dim = 512
 
     # LightningModule config
@@ -148,7 +149,7 @@ def hdnn_norm_bar():
 def hdnn_all_da():
     cfg = hdnn_no_da()
     cfg.train_transform = Compose([
-        T.UniformNoise(),
+        # T.UniformNoise(),
         T.Standardize(),
         T.RandomScale(),
         T.RandomFlip(),

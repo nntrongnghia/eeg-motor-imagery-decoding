@@ -67,10 +67,7 @@ class Backbone(nn.Module):
         super().__init__()
         c1 = cnn1_out_channels  # c1 for short
         L, _, B, M = input_dims
-        self.cnn1 = nn.Sequential(
-            nn.Conv2d(1, c1, 5, padding="same"),
-            nn.ReLU()
-        )
+        self.cnn1 = nn.Conv2d(1, c1, 5, padding="same")
         self.fc1 = nn.Sequential(
             nn.Linear(c1*B*M, lstm_input_size),
             nn.ReLU()
@@ -192,13 +189,6 @@ class HDNN(nn.Module):
         )
         self.initialize_weights()
 
-    def initialize_weights(self):
-        """Initialize weights using Normal Distribution of mean 0 and std 0.1
-        based on the paper
-        """
-        for param in self.parameters():
-            nn.init.normal_(param, std=0.1)
-
     @torch.no_grad()
     def initialize_csp(self, xfb:np.ndarray, y:np.ndarray, on_gpu=False):
         """Initialize CSP transformation matrix
@@ -213,11 +203,20 @@ class HDNN(nn.Module):
         """
         self.ovr_csp.fit(xfb, y)
 
+    def initialize_weights(self):
+        """Initialize weights using Normal Distribution of mean 0 and std 0.1
+        based on the paper
+        """
+        for param in self.parameters():
+            torch.nn.init.trunc_normal_(param, std=0.1, a=-0.2, b=0.2)
+
     def finetune(self):
         """Freeze the backbone for transfer learning
         """
         for param in self.backbone.parameters():
             param.requires_grad = False
+        for param in self.head.parameters():
+            torch.nn.init.trunc_normal_(param, std=0.1, a=-0.2, b=0.2)
         
 
     def forward(self, xfb: torch.Tensor, return_dict=False) -> torch.Tensor:

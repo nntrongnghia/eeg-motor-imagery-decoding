@@ -25,9 +25,9 @@ logging.getLogger().setLevel(logging.INFO)
 
 def get_argument_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_dir", type=str,
-                        help="Directory to BCIC IV 2a dataset")
     parser.add_argument("subject", type=str, help="Subject ID to train")
+    parser.add_argument("--data_dir", type=str, default=None,
+                        help="Directory to BCIC IV 2a dataset")
     parser.add_argument("--config", type=str, default="hdnn_all_da",
                         help="name of config function in hdnn/config.py")
     parser.add_argument("--overwrite_sample", action="store_true",
@@ -73,6 +73,8 @@ def train_single_subject(args, config, expe_name, lit_model):
     trainer = pl.Trainer.from_argparse_args(args,
                                             logger=tb_logger,
                                             callbacks=callbacks,
+                                            # val_check_interval=1,
+                                            # log_every_n_steps=1,
                                             **config.trainer_kwargs)
     trainer.fit(lit_model,
                 single_subject_data.train_dataloader(),
@@ -90,11 +92,11 @@ def pretrain_cross_subjects(args, config, expe_name, lit_model):
     pretrain_ckpt_path = os.path.join(
         tb_logger.log_dir, ckpt_name+".ckpt")
     callbacks = [
-        ModelCheckpoint(monitor="val_kappa", mode="max",
+        ModelCheckpoint(monitor="val_loss", mode="min",
                         filename=ckpt_name,
                         dirpath=tb_logger.log_dir)]
     if not args.disable_early_stopping:
-        callbacks += [EarlyStopping(monitor="val_kappa", mode="max", patience=40)]
+        callbacks += [EarlyStopping(monitor="val_loss", mode="min", patience=40)]
     cross_subject_data = IV2aDataModule(args.data_dir,
                                         exclude_subject=[args.subject], **config,
                                         overwrite_sample=args.overwrite_sample)
@@ -104,6 +106,8 @@ def pretrain_cross_subjects(args, config, expe_name, lit_model):
     trainer = pl.Trainer.from_argparse_args(args,
                                             logger=tb_logger,
                                             callbacks=callbacks,
+                                            # val_check_interval=1,
+                                            # log_every_n_steps=1,
                                             **config.trainer_kwargs)
     trainer.fit(lit_model,
                 cross_subject_data.train_dataloader(),
