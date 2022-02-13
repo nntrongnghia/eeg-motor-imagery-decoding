@@ -35,7 +35,7 @@ pip install -r requirements.txt
 ### Dataset
 The dataset used in this repo is BCI Competition IV 2a. You can download it [here](https://www.bbci.de/competition/iv/#download). This link doesn't include the evaluation groundtruth, so you need to download it separately [here](https://www.bbci.de/competition/iv/results/index.html#labels).
 
-The dataset directory should be structured as follows:
+The dataset directory should be placed in the root of this repo and be structured as follows:
 ```
 ./dataset/BCI_IV_2a
 |__true_labels
@@ -49,8 +49,15 @@ The dataset directory should be structured as follows:
 ```
 
 ## Baseline results
+The baseline results are reproduced using the same hyperparameters in the article [Hybrid deep neural network using transfer learning for EEG motor imagery
+decoding](https://doi.org/10.1016/j.bspc.2020.102144). 
 
-**WORK IN PROGRESS**
+|      | Subject | A01  | A02  | A03  | A04  | A05  | A06  | A07  | A08  | A09  | Avg  |
+|------|---------|------|------|------|------|------|------|------|------|------|------|
+| HDNN | Acc     | 0.83 | 0.60 | 0.85 | 0.69 | 0.55 | 0.52 | 0.89 | 0.80 | 0.77 | 0.77 |
+|      | Kappa   | 0.77 | 0.47 | 0.81 | 0.59 | 0.40 | 0.36 | 0.85 | 0.73 | 0.70 | 0.69 |
+
+Checkpoints for the results are saved in `checkpoints` directory of this repo.
 
 ## Usage
 ### Experiment configuration
@@ -63,14 +70,15 @@ Each experiment can be configured easily by creating/modifying functions in `bci
 
 For details of each arguments, check the docstrings of corresponding classes.
 
-### Train and test
+### Train
 ```
-python bci_deep/main.py DATA_DIR SUBJECT [--config CONFIG_NAME] [--gpus 1] [--use_transfer_learning]
+python bci_deep/main.py SUBJECT [--data_dir DATA_DIR] [--config CONFIG_NAME] [--gpus 1] [--use_transfer_learning]
 ```
 
-Where `DATA_DIR` is the path to the dataset, `SUBJECT` is either `01`, `02`, etc. for the subject A01, A02, etc. respectively. 
+`SUBJECT` is either `01`, `02`, etc. for the subject A01, A02, etc. respectively. 
 
 Options:
+- If you place the dataset directory somewhere else than the root of this repo, you should specify it with `--data_dir`
 - To run on GPU, add the option `--gpus 1`
 - To run training with a specific configuration, add `--config CONFIG_NAME` with `CONFIG_NAME` is the name of a function returning `ml_collection.ConfigDict` defined in `bci_deep/model/config.py`.
 - To train model using transfer learning, add `--use_transfer_learning`
@@ -83,29 +91,38 @@ Then the training results (losses, metrics) can be accessed using TensorBoard. T
 ```
 tensorboard --logdir lightning_logs
 ```
-
+### Test
 To run a test of a checkpoint:
 ```
-python bci_deep/main.py DATA_DIR SUBJECT --test_ckpt CHECKPOINT [--config CONFIG_NAME]
+python bci_deep/main.py SUBJECT --test_ckpt CHECKPOINT [--config CONFIG_NAME] [--data_dir DATA_DIR]
 ```
 where `CHECKPOINT` is the path to the checkpoint, and `CONFIG_NAME` must be given if you use a custom configuration other than the default one.
 
-Example in Colab notebook: [here](https://colab.research.google.com/drive/1I2qnpA281TrBaiT9KRdx5_xGsf5_uXZJ?usp=sharing)
+### Grid search for hyperparameter tuning
+```
+python bci_deep/tune.py SUBJECT [--num_samples NUM_SAMPLES] [--config TUNE_CONFIG] [--gpu]
+```
+Options:
+- `--num_samples NUM_SAMPLES` sets the number of random sample in grid search. Default: 20
+- `--config TUNE_CONFIG` sets the tuning configuration. Check `bci_deep/model/tune_config.py` for inspiration. Default: `hdnn_tune`
+- `--gpu` to run tuning in GPU
+
+The tuning process takes time and it run multiple trial in parallel, so in some case it would be more time efficient if we run the tuning on CPUs.
+
 
 ## Want to try your own model? It's easy!
-The data module feeds the trainer with a dictionary of arrays with key/shape:
+The data module feeds the trainer with a dictionary of 2 inputs:
 - "eeg": (C, T), raw eeg signals
 - "eeg_fb": (B, C, T), filtered signals by Filter Bank
-- "y": (1,), labels
-- "s": (1,), subject id
+
 With C channels, B filter bands, T time.
 
-If your model use filtered signals "eeg_fb", just simply implement your model in PyTorch and create a corresponding configuration. That's all!
-
-If your model use raw eeg signals "eeg", simple additional steps are required:
-- Inherit `LitModel`, modify `training/validation/test_step` methods using `batch["eeg"]`
-- Make the subclass in the step above visible in `bci_deep/model/__init__.py`
+To implement your own model, the general guide line should be:
+- Implement a model with a similar structure as [`HDNN`](bci_deep/model/hdnn.py)
+- Create a configuration function returning `ml_collection.ConfigDict` in `bci_deep/model/config.py`
 - That's all!
+
+The rest of the pipeline should works as fine. You could check `no_filter_hdnn.py` and `bci_deep/model/config.py:no_filter_hdnn_no_da` for inspiration.
 
 ## Contact
 Ngoc Trong Nghia Nguyen - nntrongnghiadt@gmail.com - [Linked In](https://www.linkedin.com/in/ngoc-trong-nghia-nguyen/)

@@ -17,6 +17,7 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+from bci_deep import DEFAULT_GDF_DATA_DIR
 
 import bci_deep.model.tune_config as tune_config
 import bci_deep.model
@@ -31,17 +32,18 @@ logging.getLogger().setLevel(logging.INFO)
 
 def get_argument_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_dir", type=str,
-                        help="Directory to BCIC IV 2a dataset")
     parser.add_argument("subject", type=str, help="Subject ID to train")
-    parser.add_argument("--num_samples", type=int, default=10, help="Number of sample in grid")
+    parser.add_argument("--data_dir", type=str, default=None,
+                        help="Directory to BCIC IV 2a dataset")
+    parser.add_argument("--num_samples", type=int, default=20, 
+                        help="Number of samples in grid search")
     parser.add_argument("--gpu", action="store_true", help="Run on GPU")
-    parser.add_argument("--overwrite_sample", action="store_true",
-                        help="If set, rebuild IV 2a dataset in npz")
     parser.add_argument("--config", type=str, default="hdnn_tune",
                         help="name of config function in hdnn/tune_config.py")
     parser.add_argument("--lightning_module", type=str, default="LitModel",
                         help="Name of the Lightning Module subclass. Default: `LitModel`")
+    parser.add_argument("--logdir", type=str, default="tune_results",
+                        help="Directory to save Tensorboard logging")
     return parser
 
 
@@ -51,8 +53,7 @@ def train_lit_model(config:ConfigDict, args, num_epochs=200, num_gpus:int=0):
     lit_model_class = getattr(bci_deep.model, args.lightning_module)
     lit_model = lit_model_class(**config)
     single_subject_data = IV2aDataModule(data_dir,
-                                        include_subject=[args.subject], **config,
-                                        overwrite_sample=args.overwrite_sample)
+                                        include_subject=[args.subject], **config)
     
     single_subject_data.setup(stage="fit")
     single_subject_data.setup(stage="test")
@@ -84,8 +85,7 @@ def train_lit_model(config:ConfigDict, args, num_epochs=200, num_gpus:int=0):
 def tune_mnist_asha(config, args, 
                     num_samples=10, 
                     num_epochs=200, 
-                    gpus_per_trial=0, 
-                    local_dir="./ray_results"):
+                    gpus_per_trial=0):
 
     scheduler = ASHAScheduler(
         max_t=num_epochs,
@@ -110,8 +110,8 @@ def tune_mnist_asha(config, args,
         num_samples=num_samples,
         scheduler=scheduler,
         progress_reporter=reporter,
-        name="tune_hdnn",
-        local_dir=local_dir)
+        name=args.config,
+        local_dir=args.logdir)
 
     print("Best hyperparameters found were: ", analysis.best_config)
 
@@ -126,4 +126,6 @@ def main(args):
 if __name__ == "__main__":
     parser = get_argument_parser()
     args = parser.parse_args()
+    if args.data_dir is None:
+        args.data_dir = DEFAULT_GDF_DATA_DIR
     main(args)

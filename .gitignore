@@ -148,9 +148,9 @@ sandbox
 docs
 lightning_logs*
 .vscode
-checkpoints
 results
 ray_results
 dataset_bci_iv_2a
 dataset
 train_hdnn_all_subjects.sh
+tune_results

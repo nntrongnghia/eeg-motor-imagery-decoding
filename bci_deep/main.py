@@ -31,8 +31,6 @@ def get_argument_parser():
                         help="Directory to BCIC IV 2a dataset")
     parser.add_argument("--config", type=str, default="hdnn_all_da",
                         help="name of config function in hdnn/config.py")
-    parser.add_argument("--overwrite_sample", action="store_true",
-                        help="If set, rebuild IV 2a dataset in npz")
     parser.add_argument("--use_transfer_learning", action="store_true",
                         help="If set, no pretrain model with cross subject data")
     parser.add_argument("--test_ckpt", type=str, default=None,
@@ -48,8 +46,7 @@ def get_argument_parser():
 def test_model(args, config, lit_model):
     trainer = pl.Trainer.from_argparse_args(args, logger=False)
     single_subject_data = IV2aDataModule(args.data_dir,
-                                         include_subject=[args.subject], **config,
-                                         overwrite_sample=args.overwrite_sample)
+                                         include_subject=[args.subject], **config)
     single_subject_data.setup(stage="test")
     trainer.test(lit_model, single_subject_data.test_dataloader())
 
@@ -66,8 +63,7 @@ def train_single_subject(args, config, expe_name, lit_model):
     if not args.disable_early_stopping:
         callbacks += [EarlyStopping(monitor="val_kappa", mode="max", patience=40)]
     single_subject_data = IV2aDataModule(args.data_dir,
-                                         include_subject=[args.subject], **config,
-                                         overwrite_sample=args.overwrite_sample)
+                                         include_subject=[args.subject], **config)
     single_subject_data.setup(stage="fit")
     single_subject_data.setup(stage="test")
     lit_model.initialize_csp(single_subject_data)
@@ -99,8 +95,7 @@ def pretrain_cross_subjects(args, config, expe_name, lit_model):
     if not args.disable_early_stopping:
         callbacks += [EarlyStopping(monitor="val_loss", mode="min", patience=40)]
     cross_subject_data = IV2aDataModule(args.data_dir,
-                                        exclude_subject=[args.subject], **config,
-                                        overwrite_sample=args.overwrite_sample)
+                                        exclude_subject=[args.subject], **config)
     cross_subject_data.setup(stage="fit")
     cross_subject_data.setup(stage="test")
     lit_model.initialize_csp(cross_subject_data)

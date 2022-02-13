@@ -1,0 +1,48 @@
+batch_size: 24
+cnn1_out_channels: 4
+fs: 250
+head_hidden_dim: 512
+input_key: eeg_fb
+loss_fn: !!python/name:bci_deep.model.losses.ce_loss ''
+lr: 0.001
+lstm_hidden_size: 32
+lstm_input_size: 32
+lstm_num_layers: 3
+lstm_output_size: 0
+m_filters: 1
+model_class: !!python/name:bci_deep.model.hdnn.HDNN ''
+nb_bands: 9
+nb_classes: 4
+nb_segments: 4
+num_workers: 3
+p_dropout: 0.1
+test_transform: !!python/object:bci_deep.bcic_iv2a.transform.Standardize
+  channel_wise: false
+  mean: null
+  std: null
+tmax: 4.0
+tmin: 0.0
+train_transform: !!python/object:torchvision.transforms.transforms.Compose
+  transforms:
+  - !!python/object:bci_deep.bcic_iv2a.transform.Standardize
+    channel_wise: false
+    mean: null
+    std: null
+  - !!python/object:bci_deep.bcic_iv2a.transform.RandomScale
+    scale_range:
+    - 0.95
+    - 1.05
+  - !!python/object:bci_deep.bcic_iv2a.transform.RandomFlip
+    p: 0.5
+  - !!python/object:bci_deep.bcic_iv2a.transform.RandomFrequencyShift
+    dt: 0.004
+    freq_range:
+    - -0.2
+    - 0.2
+trainable_csp: false
+trainer_kwargs: !!python/object:ml_collections.config_dict.config_dict.ConfigDict
+  _convert_dict: true
+  _fields:
+    stochastic_weight_avg: true
+  _locked: false
+  _type_safe: true

@@ -23,10 +23,15 @@ def hdnn_lr_bs():
 
 def hdnn_tune():
     cfg = C.hdnn_all_da()
-    cfg.p_dropout = 0.1
-    cfg.cnn1_out_channels = 8
     with cfg.ignore_type():
         cfg.lr = tune.loguniform(1e-5, 1e-3)
-        cfg.batch_size = tune.choice([2, 4, 8])
+        cfg.batch_size = tune.choice([2, 4, 8, 16, 32, 64, 128])
         cfg.m_filters = tune.randint(1, 10)
+        cfg.cnn1_out_channels = tune.choice([2, 4, 8, 16])
+        cfg.nb_bands = tune.randint(9, 17)
+        cfg.head_hidden_dim = tune.choice([32, 64, 128, 256, 512])
+        cfg.trainable_csp = tune.choice([True, False])
+        cfg.tmin = tune.uniform(0.0, 2.0)
+        cfg.tmax = tune.uniform(2.5, 4.0)
+        cfg.nb_segments = tune.randint(1, 8)
     return cfg
