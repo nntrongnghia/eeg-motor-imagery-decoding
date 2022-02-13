@@ -11,6 +11,7 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+from bci_deep import DEFAULT_GDF_DATA_DIR
 
 import bci_deep.model.config as config_collection
 import bci_deep.model
@@ -124,6 +125,8 @@ def export_config_to_yaml(args, config, expe_name):
 
 
 def main(args):
+    if args.data_dir is None:
+        args.data_dir = DEFAULT_GDF_DATA_DIR
     # Build experiment config from config name
     logging.info(f"Load config {args.config}")
     config = getattr(config_collection, args.config)()

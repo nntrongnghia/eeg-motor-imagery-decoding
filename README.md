@@ -37,7 +37,7 @@ The dataset used in this repo is BCI Competition IV 2a. You can download it [her
 
 The dataset directory should be structured as follows:
 ```
-DATA_DIR
+./dataset/BCI_IV_2a
 |__true_labels
 |   |__A01T.mat
 |   |__A01E.mat
@@ -46,22 +46,11 @@ DATA_DIR
 |__A01T.gdf
 |__A01E.gdf
 |__...
-
 ```
 
 ## Baseline results
 
-These results are obtained on "E" data using HDNN model with hyperparameters found at `bci_deep/model/config.py:hdnn_all_da`
-
-Checkpoints can be downloaded [HERE](https://drive.google.com/drive/folders/1pJIip2qEzuurFCBFeDy2P4xK8EM1mIOg?usp=sharing)
-
-|         | Subject | A01      | A02      | A03      | A04      | A05      | A06      | A07      | A08      | A09      | Avg      |
-|---------|---------|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|
-| **HDNN**    | Acc     | **0.88** | 0.61     | 0.87     | **0.76** | **0.65** | **0.58** | **0.90** | 0.85     | **0.81** | **0.77** |
-|         | Kappa   | **0.84** | 0.48     | 0.83     | **0.68** | **0.53** | **0.44** | **0.87** | 0.80     | **0.75** | **0.69** |
-|         |         |          |          |          |          |          |          |          |          |          |          |
-| **HDNN-TL** | Acc     | 0.85     | **0.63** | **0.90** | 0.67     | 0.60     | 0.55     | 0.85     | **0.85** | 0.81     | 0.75     |
-|         | Kappa   | 0.80     | **0.50** | **0.87** | 0.56     | 0.47     | 0.40     | 0.80     | **0.81** | 0.75     | 0.66     |
+**WORK IN PROGRESS**
 
 ## Usage
 ### Experiment configuration

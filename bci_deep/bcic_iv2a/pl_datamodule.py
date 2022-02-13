@@ -69,12 +69,6 @@ class IV2aDataModule(pl.LightningDataModule):
             Ratio to split "T" BCIC IV 2a dataset to train and validation.
             WARNING: this fucntion is not implemented.
             By default 1.0
-        overwrite_sample : bool, optional
-            If True, rebuild sample in npz format, by default False
-        bar_augmentation : bool, optional
-            If True, use Brain Area Recombination (BAR) in training.
-            For details: https://www.frontiersin.org/articles/10.3389/fnhum.2021.645952/full
-            By default False
         """
         super().__init__()
         self.dataset_kwargs = {

@@ -199,7 +199,13 @@ class RandomFrequencyShift:
 
 
 class RandomChoice:
-    def __init__(self, da_list:List):
+    def __init__(self, da_list:List[callable]):
+        """Perform random augmentation from the given `da_list`
+
+        Parameters
+        ----------
+        da_list: List of callable
+        """
         self.da_list = da_list
 
     def __call__(self, x:np.ndarray):

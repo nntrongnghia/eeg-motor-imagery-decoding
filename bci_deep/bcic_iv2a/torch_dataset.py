@@ -10,13 +10,10 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from bci_deep import DEFAULT_MAT_DATA_DIR
-from bci_deep.bcic_iv2a import IV2aGdfReader
-from bci_deep.bcic_iv2a.data_reader import IV2aMatReader
-from bci_deep.preprocess import OVR_CSP, FilterBank
+from bci_deep.bcic_iv2a import IV2aGdfReader, IV2aMatReader
+from bci_deep.preprocess import FilterBank
 from torch.utils.data import Dataset
 from bci_deep.bcic_iv2a.transform import ToTensor
-import json
-import random
 
 class IV2aDataset(Dataset):
     NB_CLASSES = 4
@@ -83,8 +80,8 @@ class IV2aDataset(Dataset):
         self.train = train
         self.include_subjects = include_subject
         self.exclude_subjects = exclude_subject
-        # self.datareader = IV2aGdfReader(data_dir)
-        self.datareader = IV2aMatReader(data_dir or DEFAULT_MAT_DATA_DIR)
+        self.datareader = IV2aGdfReader(data_dir)
+        # self.datareader = IV2aMatReader(data_dir or DEFAULT_MAT_DATA_DIR)
         self.transform = transform
         self.info = {
             "fs": self.FS,

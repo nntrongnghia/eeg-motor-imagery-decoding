@@ -64,7 +64,7 @@ class IV2aGdfReader:
 
     def __init__(self, data_dir: str=None):
         """
-        Raw data reader for BCI Competition IV 2a Dataset
+        Raw GDF reader for BCI Competition IV 2a Dataset
 
         The directory structure should be:
 
@@ -167,6 +167,15 @@ class IV2aGdfReader:
 class IV2aMatReader:
     FS = 250
     def __init__(self, data_dir=None):
+        """
+        Raw .mat data reader for BCI Competition IV 2a Dataset
+        available at http://bnci-horizon-2020.eu/database/data-sets
+
+        Parameters
+        ----------
+        data_dir: str
+            Directory containing .mat data downloaded from the url above
+        """
         self.data_dir = data_dir
         if self.data_dir is not None:
             self.filenames = [name for name in os.listdir(
@@ -175,6 +184,26 @@ class IV2aMatReader:
             self.filenames = []
     
     def read_file(self, filename: str, tmin=0.0, tmax=4.0):
+        """Get data as np.ndarray from a given filename
+
+        Parameters
+        ----------
+        filename : str
+            MAT filename
+        tmin, tmax: float
+            Start and end time in seconds, relative to the start of each cue
+            Defaults to 0.0 and 4.0 respectively (based on BCIC IV 2a description)
+
+        Returns
+        -------
+        dict
+            "x_data": np.ndarray, float
+                shape (nb trials, nb channels, time length)
+                with time length = `fs`*(`tmax` - `tmin`) + 1
+            "y_labels": np.ndarray, int
+                shape (nb trials)
+                labels for each trial
+        """
         t1 = int(self.FS*(tmin+2))
         t2 = int(self.FS*(tmax+2))
         if self.data_dir is not None:

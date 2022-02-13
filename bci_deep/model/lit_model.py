@@ -30,9 +30,10 @@ class LitModel(pl.LightningModule):
             Subclass of nn.Module, use to build the model.
             The model input: filtered EEG signals of shape (N, C, B, T)
             N trials, C channels, B filter bands, T time
+        input_key: str
+            key to get input from dict given by DataModule
         model_kwargs : dict, optional
             Keyword arguments to instantiate the model
-            By default {}
         nb_classes : int, optional
             Number of classes, by default 4
         lr : float, optional
@@ -190,14 +191,6 @@ class LitModel(pl.LightningModule):
     def training_epoch_end(self, outputs) -> None:
         self.log("train_kappa", self.train_kappa.compute())
         self.log("train_accuracy", self.train_accuracy.compute())
-        if self.trainer._progress_bar_callback is None:
-            loss = float(torch.stack(
-                [out["loss"] for out in outputs]
-            ).mean().detach().cpu().numpy())
-            acc = float(self.train_accuracy.compute().cpu().numpy())
-            kappa = float(self.train_kappa.compute().cpu().numpy())
-            logging.info(
-                f"Epoch {self.current_epoch}, train_loss={loss:.3f}, train_kappa={kappa:.3f}, train_acc={acc:.3f}")
         self.train_kappa.reset()
         self.train_accuracy.reset()
 
@@ -208,13 +201,6 @@ class LitModel(pl.LightningModule):
         if kappa > self.max_val_kappa:
             self.max_val_kappa = kappa
         self.log("max_val_kappa", self.max_val_kappa)
-        
-        if self.trainer._progress_bar_callback is None:
-            loss = float(torch.stack(outputs).mean().detach().cpu().numpy())
-            acc = float(self.accuracy.compute().cpu().numpy())
-            logging.info(
-                f"Epoch {self.current_epoch}, val_loss={loss:.3f}, val_kappa={kappa:.3f}, val_acc={acc:.3f}")
-        
         self.kappa.reset()
         self.accuracy.reset()
 
