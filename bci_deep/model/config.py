@@ -200,3 +200,13 @@ def hdnn_random_da_tuned():
     cfg.cnn1_out_channels = 16
     cfg.batch_size = 4
     return cfg
+
+def tuned_hdnn_all_da():
+    cfg = hdnn_all_da()
+    cfg.lr = 5e-4
+    cfg.batch_size = 4
+    cfg.cnn1_out_channels = 16
+    cfg.nb_bands = 16
+    cfg.head_hidden_dim = 32
+    cfg.trainable_csp = True
+    return cfg

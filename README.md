@@ -10,6 +10,7 @@ Things that are implemented in this repo:
 - Dataloader for BCI Competition IV 2a dataset
 - Baseline model (CNN + LSTM) based on [this paper](https://doi.org/10.1016/j.bspc.2020.102144)
 - Data augmentations for EEG signals
+- Grid search for hyperparameter tuning
 
 ## Table of contents
 1. [Setup](#setup)
@@ -49,15 +50,20 @@ The dataset directory should be placed in the root of this repo and be structure
 ```
 
 ## Baseline results
-The baseline results are reproduced using the same hyperparameters in the article [Hybrid deep neural network using transfer learning for EEG motor imagery
-decoding](https://doi.org/10.1016/j.bspc.2020.102144). 
 
-|      | Subject | A01  | A02  | A03  | A04  | A05  | A06  | A07  | A08  | A09  | Avg  |
-|------|---------|------|------|------|------|------|------|------|------|------|------|
-| HDNN | Acc     | 0.83 | 0.60 | 0.85 | 0.69 | 0.55 | 0.52 | 0.89 | 0.80 | 0.77 | 0.72 |
-|      | Kappa   | 0.77 | 0.47 | 0.81 | 0.59 | 0.40 | 0.36 | 0.85 | 0.73 | 0.70 | 0.63 |
+|           | Subject | A01      | A02      | A03      | A04      | A05      | A06      | A07      | A08      | A09      | Avg      |
+|-----------|---------|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|
+| HDNN      | Acc     | 0.83     | **0.60** | 0.85     | 0.69     | 0.55     | 0.52     | 0.89     | 0.80     | **0.77** | 0.72     |
+|           | Kappa   | 0.77     | **0.47** | 0.81     | 0.59     | 0.40     | 0.36     | 0.85     | 0.73     | **0.70** | 0.63     |
+|           |         |          |          |          |          |          |          |          |          |          |          |
+|           |         |          |          |          |          |          |          |          |          |          |          |
+| TunedHDNN | Acc     | **0.83** | 0.58     | **0.90** | **0.70** | **0.64** | **0.56** | **0.90** | **0.82** | 0.76     | **0.74** |
+|           | Kappa   | **0.77** | 0.44     | **0.87** | **0.61** | **0.52** | **0.41** | **0.86** | **0.75** | 0.68     | **0.66** |
 
 Checkpoints for the results are saved in `checkpoints` directory of this repo.
+
+- HDNN uses the same hyperparameters in the article [Hybrid deep neural network using transfer learning for EEG motor imagery decoding](https://doi.org/10.1016/j.bspc.2020.102144). Those hyperparameters are resumed in `bci_deep/model/config.py:hdnn_all_da`.
+- TunedHDNN's hyperparameters are tuned by grid search. Check `bci_deep/model/config.py:tuned_hdnn_all_da` for details.
 
 ## Usage
 ### Experiment configuration
