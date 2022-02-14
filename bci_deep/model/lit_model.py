@@ -201,6 +201,7 @@ class LitModel(pl.LightningModule):
         if kappa > self.max_val_kappa:
             self.max_val_kappa = kappa
         self.log("max_val_kappa", self.max_val_kappa)
+        self.log("hp_metric", self.max_val_kappa)
         self.kappa.reset()
         self.accuracy.reset()
 
