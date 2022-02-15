@@ -30,4 +30,5 @@ def hdnn_tune():
         cfg.nb_bands = tune.randint(9, 17)
         cfg.head_hidden_dim = tune.choice([32, 64, 128, 256, 512])
         cfg.trainable_csp = tune.choice([True, False])
+        cfg.m_filters = tune.randint(1, 10)
     return cfg
