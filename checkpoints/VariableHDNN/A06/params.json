@@ -1,0 +1,27 @@
+{
+  "batch_size": 16,
+  "cnn1_out_channels": 16,
+  "fs": 250,
+  "head_hidden_dim": 128,
+  "input_key": "eeg_fb",
+  "lr": 0.00025785815155671886,
+  "lstm_hidden_size": 32,
+  "lstm_input_size": 32,
+  "lstm_num_layers": 3,
+  "lstm_output_size": 0,
+  "m_filters": 3,
+  "model_class": "<class 'bci_deep.model.hdnn.HDNN'>",
+  "nb_bands": 15,
+  "nb_classes": 4,
+  "nb_segments": 4,
+  "num_workers": 3,
+  "p_dropout": 0.1,
+  "test_transform": "<bci_deep.bcic_iv2a.transform.Standardize object at 0x1478a23d7400>",
+  "tmax": 4.0,
+  "tmin": 0.0,
+  "train_transform": "Compose(\n    <bci_deep.bcic_iv2a.transform.Standardize object at 0x1478a10e8ca0>\n    <bci_deep.bcic_iv2a.transform.RandomScale object at 0x1478a10e8370>\n    <bci_deep.bcic_iv2a.transform.RandomFlip object at 0x1478a10e8250>\n    <bci_deep.bcic_iv2a.transform.RandomFrequencyShift object at 0x1478a14cf340>\n)",
+  "trainable_csp": false,
+  "trainer_kwargs": {
+    "stochastic_weight_avg": true
+  }
+}

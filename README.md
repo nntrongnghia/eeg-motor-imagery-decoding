@@ -51,19 +51,32 @@ The dataset directory should be placed in the root of this repo and be structure
 
 ## Baseline results
 
-|           | Subject | A01      | A02      | A03      | A04      | A05      | A06      | A07      | A08      | A09      | Avg      |
-|-----------|---------|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|
-| HDNN      | Acc     | 0.83     | **0.60** | 0.85     | 0.69     | 0.55     | 0.52     | 0.89     | 0.80     | **0.77** | 0.72     |
-|           | Kappa   | 0.77     | **0.47** | 0.81     | 0.59     | 0.40     | 0.36     | 0.85     | 0.73     | **0.70** | 0.63     |
-|           |         |          |          |          |          |          |          |          |          |          |          |
-|           |         |          |          |          |          |          |          |          |          |          |          |
-| TunedHDNN | Acc     | **0.83** | 0.58     | **0.90** | **0.70** | **0.64** | **0.56** | **0.90** | **0.82** | 0.76     | **0.74** |
-|           | Kappa   | **0.77** | 0.44     | **0.87** | **0.61** | **0.52** | **0.41** | **0.86** | **0.75** | 0.68     | **0.66** |
+|              | Subject | A01      | A02      | A03      | A04      | A05      | A06      | A07      | A08      | A09      | Avg      |
+|--------------|---------|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|
+| HDNN         | Acc     | 0.83     | 0.60     | 0.85     | 0.69     | 0.55     | 0.54     | 0.89     | 0.80     | 0.77     | 0.72     |
+|              | Kappa   | 0.77     | 0.47     | 0.81     | 0.59     | 0.40     | 0.39     | 0.85     | 0.73     | 0.70     | 0.63     |
+|              |         |          |          |          |          |          |          |          |          |          |          |
+|              |         |          |          |          |          |          |          |          |          |          |          |
+| TunedHDNN    | Acc     | 0.83     | 0.58     | 0.90     | 0.70     | 0.64     | 0.56     | 0.90     | 0.82     | 0.76     | 0.74     |
+|              | Kappa   | 0.77     | 0.44     | 0.87     | 0.61     | 0.52     | 0.41     | 0.86     | 0.75     | 0.68     | 0.66     |
+|              |         |          |          |          |          |          |          |          |          |          |          |
+|              |         |          |          |          |          |          |          |          |          |          |          |
+| VariableHDNN | Acc     | **0.86** | **0.63** | **0.90** | **0.76** | **0.66** | **0.60** | **0.90** | **0.86** | **0.84** | **0.78** |
+|              | Kappa   | **0.81** | **0.50** | **0.87** | **0.68** | **0.55** | **0.47** | **0.86** | **0.81** | **0.79** | **0.70** |
 
-Checkpoints for the results are saved in `checkpoints` directory of this repo.
+Checkpoints for the results are saved in `checkpoints` directory of this repo. To see the training process, run `tensorboard --logdir checkpoints`.
 
 - HDNN uses the same hyperparameters in the article [Hybrid deep neural network using transfer learning for EEG motor imagery decoding](https://doi.org/10.1016/j.bspc.2020.102144). Those hyperparameters are resumed in `bci_deep/model/config.py:hdnn_all_da`.
-- TunedHDNN's hyperparameters are tuned by grid search. Check `bci_deep/model/config.py:tuned_hdnn_all_da` for details.
+- TunedHDNN: The worst case, which is A06 is tuned with grid search. Then the tuned hyperparameters are applied to all other subjects. These hyperparameters are configured in `bci_deep/model/config.py:tuned_hdnn_all_da`
+- VariableHDNN: hyperparameters for each subject are tuned separately.
+
+In all cases, hyperparameters can be retrieved through the checkpoints using the following snippet used in `main.py`:
+```
+ckpt = torch.load(test_ckpt)
+config = ConfigDict()
+config.update(ckpt["hyper_parameters"])
+```
+
 
 ## Usage
 ### Experiment configuration
