@@ -5,6 +5,7 @@ import argparse
 import logging
 import os
 from datetime import datetime
+import ml_collections
 
 import pytorch_lightning as pl
 import torch
@@ -12,7 +13,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 from bci_deep import DEFAULT_GDF_DATA_DIR
-
+from ml_collections import ConfigDict
 import bci_deep.model.config as config_collection
 import bci_deep.model
 from bci_deep.bcic_iv2a import IV2aDataModule
@@ -122,18 +123,18 @@ def export_config_to_yaml(args, config, expe_name):
 def main(args):
     if args.data_dir is None:
         args.data_dir = DEFAULT_GDF_DATA_DIR
-    # Build experiment config from config name
-    logging.info(f"Load config {args.config}")
-    config = getattr(config_collection, args.config)()
-    logging.info(config)
-    # Set the experiment name
-    expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(
-        args.config, args.subject, datetime.now())
-    # Instantiate Lightning Module from config
     lit_model_class = getattr(bci_deep.model, args.lightning_module)
-    lit_model = lit_model_class(**config)
     # === If train model
     if args.test_ckpt is None:
+        # Build experiment config from config name
+        logging.info(f"Load config {args.config}")
+        config = getattr(config_collection, args.config)()
+        logging.info(config)
+        # Set the experiment name
+        expe_name = "{}_s{}_{:%y-%b-%d-%Hh-%M}".format(
+            args.config, args.subject, datetime.now())
+        # Instantiate Lightning Module from config
+        lit_model = lit_model_class(**config)
         # save experiment config as yaml file
         export_config_to_yaml(args, config, expe_name)
         if args.use_transfer_learning:
@@ -144,7 +145,10 @@ def main(args):
     # === Else, load checkpoint for testing
     else:
         logging.info(f"Load checkpoint: {args.test_ckpt}")
-        lit_model = lit_model.load_from_checkpoint(args.test_ckpt)
+        ckpt = torch.load(args.test_ckpt)
+        config = ConfigDict()
+        config.update(ckpt["hyper_parameters"])
+        lit_model = lit_model_class.load_from_checkpoint(args.test_ckpt)
         test_model(args, config, lit_model)
 
 

@@ -155,3 +155,4 @@ dataset
 train_hdnn_all_subjects.sh
 tune_results
 hdnn_tl_logs
+tune0*
