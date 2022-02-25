@@ -109,7 +109,7 @@ tensorboard --logdir lightning_logs
 ### Test
 To run a test of a checkpoint:
 ```
-python bci_deep/main.py SUBJECT --test_ckpt CHECKPOINT [--config CONFIG_NAME] [--data_dir DATA_DIR]
+python bci_deep/main.py SUBJECT --test_ckpt CHECKPOINT
 ```
 where `CHECKPOINT` is the path to the checkpoint, and `CONFIG_NAME` must be given if you use a custom configuration other than the default one.
 
