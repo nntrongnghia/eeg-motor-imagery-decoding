@@ -120,6 +120,7 @@ def export_config_to_yaml(args, config, expe_name):
         f.write(config.to_yaml())
 
 
+
 def main(args):
     if args.data_dir is None:
         args.data_dir = DEFAULT_GDF_DATA_DIR
@@ -145,7 +146,11 @@ def main(args):
     # === Else, load checkpoint for testing
     else:
         logging.info(f"Load checkpoint: {args.test_ckpt}")
-        ckpt = torch.load(args.test_ckpt)
+        if torch.cuda.is_available():
+            ckpt = torch.load(args.test_ckpt)
+        else:
+            ckpt = torch.load(args.test_ckpt, map_location=torch.device('cpu'))
+            
         config = ConfigDict()
         config.update(ckpt["hyper_parameters"])
         lit_model = lit_model_class.load_from_checkpoint(args.test_ckpt)
